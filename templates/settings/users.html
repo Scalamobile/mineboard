@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MineBoard - Impostazioni Utenti</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-user-cog"></i> Impostazioni Utenti</h1>
+            <p>Gestione password amministratore</p>
+            <div class="theme-switcher">
+                <input type="checkbox" id="theme-toggle">
+                <label for="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                    <i class="fas fa-sun"></i>
+                </label>
+            </div>
+            <a href="/settings/users" class="btn btn-secondary" title="Impostazioni" style="margin-left: 10px; padding: 10px; border-radius: 50%;">
+                <i class="fas fa-gear"></i>
+            </a>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <a href="/" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Torna alla Dashboard</a>
+            <a href="/logout" class="btn btn-warning"><i class="fas fa-right-from-bracket"></i> Logout</a>
+        </div>
+
+        <div class="card" style="max-width: 600px;">
+            <div class="card-header">
+                <i class="fas fa-key"></i>
+                <h2>Cambia Password Admin</h2>
+            </div>
+
+            {% if error %}
+            <div class="notification error show" style="position: relative; transform: none; margin-bottom: 10px;">{{ error }}</div>
+            {% endif %}
+            {% if success %}
+            <div class="notification success show" style="position: relative; transform: none; margin-bottom: 10px;">{{ success }}</div>
+            {% endif %}
+
+            <form method="post" action="{{ url_for('update_admin_password') }}">
+                <div class="form-group">
+                    <label for="new_password">Nuova Password</label>
+                    <input type="password" id="new_password" name="new_password" required minlength="8">
+                </div>
+                <div class="form-group">
+                    <label for="confirm_password">Conferma Nuova Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required minlength="8">
+                </div>
+                <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Salva</button>
+            </form>
+
+            <div style="margin-top: 15px; color: #666;">
+                Non è richiesta la password precedente quando accedi con la password generata dalla console (primo accesso).
+            </div>
+        </div>
+
+        <!-- Gestione Utenti -->
+        <div class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <i class="fas fa-users-cog"></i>
+                <h2>Gestione Utenti</h2>
+            </div>
+
+            {% set is_admin = (current_user == 'admin') %}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Aggiungi Utente -->
+                <div>
+                    <h3 style="margin-bottom: 10px;">Aggiungi Utente</h3>
+                    {% if is_admin %}
+                    <form method="post" action="{{ url_for('add_user') }}">
+                        <div class="form-group">
+                            <label for="username_new">Username</label>
+                            <input type="text" id="username_new" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password_new">Password</label>
+                            <input type="password" id="password_new" name="password" required minlength="8">
+                        </div>
+                        <div class="form-group">
+                            <label>Permessi</label>
+                            <div class="permissions-grid">
+                                <label><input type="checkbox" name="servers_control" checked> Avvia/Stop/Riavvia</label>
+                                <label><input type="checkbox" name="files_access" checked> File Manager</label>
+                                <label><input type="checkbox" name="players_access" checked> Players</label>
+                                <label><input type="checkbox" name="stats_view" checked> Statistiche (Home)</label>
+                                <label><input type="checkbox" name="server_stats_access" checked> Statistiche Server</label>
+                                <label><input type="checkbox" name="backup_access" checked> Backup</label>
+                                <label><input type="checkbox" name="settings_access" checked> Impostazioni</label>
+                                <label><input type="checkbox" name="config_access" checked> Configurazione Server</label>
+                            </div>
+                        </div>
+                        <button class="btn btn-success" type="submit"><i class="fas fa-user-plus"></i> Crea Utente</button>
+                    </form>
+                    {% else %}
+                    <div class="card" style="padding: 15px;">
+                        <div style="color: #666;">Solo l'utente <strong>admin</strong> può creare nuovi utenti.</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Utenti Esistenti -->
+                <div>
+                    <h3 style="margin-bottom: 10px;">Utenti Esistenti</h3>
+                    {% if users %}
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        {% for uname, uinfo in users.items() %}
+                        <div class="card" style="padding: 15px;">
+                            <div style="display:flex; justify-content: space-between; align-items: center;">
+                                <strong>{{ uname }}</strong>
+                                {% if uname != 'admin' %}
+                                <form method="post" action="{{ url_for('delete_user') }}" onsubmit="return confirm('Eliminare utente {{ uname }}?');">
+                                    <input type="hidden" name="username" value="{{ uname }}">
+                                    <button class="btn btn-danger" type="submit"><i class="fas fa-user-minus"></i> Elimina</button>
+                                </form>
+                                {% else %}
+                                <span class="status-running" style="font-size: 0.85rem;">Admin</span>
+                                {% endif %}
+                            </div>
+                            <form method="post" action="{{ url_for('update_user_permissions') }}" style="margin-top: 10px;">
+                                <input type="hidden" name="username" value="{{ uname }}">
+                                <div class="permissions-grid">
+                                    <label><input type="checkbox" name="servers_control" {% if not is_admin %}disabled{% endif %} {% if uinfo.permissions.servers_control %}checked{% endif %}> Avvia/Stop/Riavvia</label>
+                                    <label><input type="checkbox" name="files_access" {% if not is_admin %}disabled{% endif %} {% if uinfo.permissions.files_access %}checked{% endif %}> File Manager</label>
+                                    <label><input type="checkbox" name="players_access" {% if not is_admin %}disabled{% endif %} {% if uinfo.permissions.players_access %}checked{% endif %}> Players</label>
+                                    <label><input type="checkbox" name="stats_view" {% if not is_admin %}disabled{% endif %} {% if uinfo.permissions.stats_view %}checked{% endif %}> Statistiche (Home)</label>
+                                    <label><input type="checkbox" name="server_stats_access" {% if not is_admin %}disabled{% endif %} {% if uinfo.permissions.server_stats_access %}checked{% endif %}> Statistiche Server</label>
+                                    <label><input type="checkbox" name="backup_access" {% if not is_admin %}disabled{% endif %} {% if uinfo.permissions.backup_access %}checked{% endif %}> Backup</label>
+                                    <label><input type="checkbox" name="settings_access" {% if not is_admin %}disabled{% endif %} {% if uinfo.permissions.settings_access %}checked{% endif %}> Impostazioni</label>
+                                    <label><input type="checkbox" name="config_access" {% if not is_admin %}disabled{% endif %} {% if uinfo.permissions.config_access %}checked{% endif %}> Configurazione Server</label>
+                                </div>
+                                {% if is_admin %}
+                                <div style="margin-top: 10px;">
+                                    <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> Salva Permessi</button>
+                                </div>
+                                {% else %}
+                                <div style="margin-top: 10px; color: #666;">Solo l'utente <strong>admin</strong> può modificare i permessi.</div>
+                                {% endif %}
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div style="color:#666;">Nessun utente trovato.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification"></div>
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+</body>
+</html>

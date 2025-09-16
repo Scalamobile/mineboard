@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MineBoard - Login</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-lock"></i> Accesso MineBoard</h1>
+            <p>Effettua il login per continuare</p>
+            <div class="theme-switcher">
+                <input type="checkbox" id="theme-toggle">
+                <label for="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                    <i class="fas fa-sun"></i>
+                </label>
+            </div>
+        </div>
+
+        <div class="card" style="max-width: 520px; margin: 0 auto;">
+            {% if info_message %}
+            <div class="card" style="background: #f8f9fa; margin-bottom: 15px;">
+                <div style="color: #666;">
+                    {{ info_message }}
+                </div>
+            </div>
+            {% endif %}
+
+            <p style="color: #666; margin-bottom: 10px;">
+                If this is your first login, click <strong>Forgot password</strong> and login with the given password in the console.
+            </p>
+
+            {% if error %}
+            <div class="notification error show" style="position: relative; transform: none; margin-bottom: 10px;">{{ error }}</div>
+            {% endif %}
+            {% if success %}
+            <!-- Modal popup for success -->
+            <div id="otpModal" class="modal" style="display: block;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-key"></i> Password Temporanea Generata</h2>
+                        <span class="close" id="otpCloseBtn">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <p>La password temporanea è stata generata con successo.</p>
+                        <p>Controlla la <strong>console del server</strong> per visualizzarla.</p>
+                        <ul style="margin-top:10px; padding-left: 20px; color:#666;">
+                            <li>Username: <code>admin</code></li>
+                            <li>Validità: 1 ora</li>
+                            <li>Dopo l'accesso, vai su <strong>Impostazioni &gt; Gestione Utenti</strong> per impostare la tua password.</li>
+                        </ul>
+                        <div style="margin-top: 15px; text-align: right;">
+                            <button class="btn btn-primary" id="otpOkBtn"><i class="fas fa-check"></i> Ok</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <form method="post" action="{{ url_for('login', next=request.args.get('next')) }}">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" value="admin" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-right-to-bracket"></i> Login
+                    </button>
+                    <button class="btn btn-secondary" formaction="{{ url_for('forgot_password') }}" formmethod="post" formnovalidate type="submit">
+                        <i class="fas fa-key"></i> Forgot password
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="notification"></div>
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('otpModal');
+            if (modal) {
+                const closeBtn = document.getElementById('otpCloseBtn');
+                const okBtn = document.getElementById('otpOkBtn');
+                function closeModal() { modal.style.display = 'none'; }
+                closeBtn && closeBtn.addEventListener('click', closeModal);
+                okBtn && okBtn.addEventListener('click', closeModal);
+                window.addEventListener('click', function(e) {
+                    if (e.target === modal) closeModal();
+                });
+            }
+        });
+    </script>
+</body>
+</html>

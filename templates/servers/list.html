@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MineBoard - Lista Server</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-server"></i> Gestione Server</h1>
+            <p>Lista e controllo dei server Minecraft</p>
+            <div class="theme-switcher">
+                <input type="checkbox" id="theme-toggle">
+                <label for="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                    <i class="fas fa-sun"></i>
+                </label>
+            </div>
+        </div>
+
+        <!-- Navigazione -->
+        <div style="margin-bottom: 30px;">
+            <a href="/" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Torna alla Dashboard
+            </a>
+            <a href="/servers/new" class="btn btn-success">
+                <i class="fas fa-plus"></i> Crea Nuovo Server
+            </a>
+            {% if permissions.settings_access %}
+            <button class="btn btn-primary" onclick="showImportModal()">
+                <i class="fas fa-file-import"></i> Importa Server
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- Lista Server -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-list"></i>
+                <h2>Server Disponibili</h2>
+                <div style="margin-left: auto;">
+                    <button class="btn btn-secondary" onclick="refreshServers()">
+                        <i class="fas fa-sync"></i> Aggiorna
+                    </button>
+                </div>
+            </div>
+            
+            <div id="serversList">
+                <div style="text-align: center; color: #666; padding: 40px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 15px;"></i>
+                    <p>Caricamento server...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiche Server -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-bar"></i>
+                <h2>Statistiche Server</h2>
+            </div>
+            
+            <div id="serverStats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalServers">--</div>
+                    <div class="stat-label">Server Totali</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="runningServers">--</div>
+                    <div class="stat-label">Server Attivi</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stoppedServers">--</div>
+                    <div class="stat-label">Server Fermati</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifiche -->
+    <div id="notification"></div>
+
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <script>
+        function showImportModal() {
+            document.getElementById('importModal').style.display = 'flex';
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').style.display = 'none';
+            document.getElementById('importSource').value = '';
+            document.getElementById('importName').value = '';
+        }
+
+        async function confirmImport() {
+            const source_path = document.getElementById('importSource').value.trim();
+            const target_name = document.getElementById('importName').value.trim();
+            if (!source_path || !source_path.startsWith('/')) {
+                showNotification('Inserisci un percorso assoluto valido della cartella server da importare', 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/api/servers/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source_path, target_name })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeImportModal();
+                    loadServers();
+                } else {
+                    showNotification(data.message || 'Errore import', 'error');
+                }
+            } catch (e) {
+                showNotification('Errore import: ' + e.message, 'error');
+            }
+        }
+        let servers = [];
+
+        // Carica lista server
+        async function loadServers() {
+            try {
+                const data = await apiCall('/api/servers');
+                servers = data;
+                updateServersList();
+                updateServerStats();
+            } catch (error) {
+                document.getElementById('serversList').innerHTML = `
+                    <div style="text-align: center; color: #ff6b6b; padding: 40px;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 15px;"></i>
+                        <p>Errore nel caricamento dei server</p>
+                        <button class="btn btn-primary" onclick="loadServers()" style="margin-top: 15px;">
+                            <i class="fas fa-retry"></i> Riprova
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function updateServersList() {
+            const container = document.getElementById('serversList');
+            
+            if (servers.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 40px;">
+                        <i class="fas fa-server" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.3;"></i>
+                        <h3>Nessun server trovato</h3>
+                        <p style="margin-bottom: 20px;">Crea il tuo primo server Minecraft</p>
+                        <a href="/servers/new" class="btn btn-success">
+                            <i class="fas fa-plus"></i> Crea Primo Server
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = servers.map(server => `
+                <div class="server-item">
+                    <div class="server-info">
+                        <div>
+                            <div class="server-name">${server.name}</div>
+                            <div style="color: #666; font-size: 0.9rem; margin-top: 5px;">
+                                <i class="fas fa-plug"></i> Porta: ${server.port} | 
+                                <i class="fas fa-memory"></i> RAM: ${server.max_memory} | 
+                                <i class="fas fa-file-archive"></i> JAR: ${server.jar_file}
+                            </div>
+                        </div>
+                        <div class="server-status ${server.status === 'running' ? 'status-running' : 'status-stopped'}">
+                            ${server.status === 'running' ? 'In Esecuzione' : 'Fermato'}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <a href="/servers/${server.name}" class="btn btn-primary">
+                            <i class="fas fa-cog"></i> Gestisci
+                        </a>
+                        ${server.status === 'running' ? 
+                            `<button class="btn btn-danger" onclick="stopServer('${server.name}')">
+                                <i class="fas fa-stop"></i> Ferma
+                            </button>` :
+                            `<button class="btn btn-success" onclick="startServer('${server.name}')">
+                                <i class="fas fa-play"></i> Avvia
+                            </button>`
+                        }
+                        <button class="btn btn-warning" onclick="restartServer('${server.name}')">
+                            <i class="fas fa-redo"></i> Riavvia
+                        </button>
+                        <button class="btn btn-secondary" onclick="deleteServer('${server.name}')">
+                            <i class="fas fa-trash"></i> Elimina
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateServerStats() {
+            const total = servers.length;
+            const running = servers.filter(s => s.status === 'running').length;
+            const stopped = total - running;
+
+            document.getElementById('totalServers').textContent = total;
+            document.getElementById('runningServers').textContent = running;
+            document.getElementById('stoppedServers').textContent = stopped;
+        }
+
+        async function startServer(serverName) {
+            try {
+                const data = await apiCall(`/api/servers/${serverName}/start`, {
+                    method: 'POST'
+                });
+                
+                showNotification(data.message, data.success ? 'success' : 'error');
+                
+                if (data.success) {
+                    loadServers();
+                }
+            } catch (error) {
+                showNotification('Errore nell\'avvio del server', 'error');
+            }
+        }
+
+        async function stopServer(serverName) {
+            if (!confirm(`Sei sicuro di voler fermare il server "${serverName}"?`)) {
+                return;
+            }
+
+            try {
+                const data = await apiCall(`/api/servers/${serverName}/stop`, {
+                    method: 'POST'
+                });
+                
+                showNotification(data.message, data.success ? 'success' : 'error');
+                
+                if (data.success) {
+                    loadServers();
+                }
+            } catch (error) {
+                showNotification('Errore nella fermata del server', 'error');
+            }
+        }
+
+        async function restartServer(serverName) {
+            if (!confirm(`Sei sicuro di voler riavviare il server "${serverName}"?`)) {
+                return;
+            }
+
+            try {
+                // Prima ferma
+                const stopData = await apiCall(`/api/servers/${serverName}/stop`, {
+                    method: 'POST'
+                });
+                
+                if (stopData.success) {
+                    // Aspetta un momento
+                    setTimeout(async () => {
+                        try {
+                            // Poi avvia
+                            const startData = await apiCall(`/api/servers/${serverName}/start`, {
+                                method: 'POST'
+                            });
+                            
+                            showNotification(startData.message, startData.success ? 'success' : 'error');
+                            loadServers();
+                        } catch (error) {
+                            showNotification('Errore nel riavvio del server', 'error');
+                        }
+                    }, 2000);
+                } else {
+                    showNotification(stopData.message, 'error');
+                }
+            } catch (error) {
+                showNotification('Errore nel riavvio del server', 'error');
+            }
+        }
+
+        async function deleteServer(serverName) {
+            if (!confirm(`ATTENZIONE: Sei sicuro di voler eliminare definitivamente il server "${serverName}"?\n\nQuesta azione eliminerà tutti i file del server e non può essere annullata!`)) {
+                return;
+            }
+
+            try {
+                // Prima ferma il server se è in esecuzione
+                const server = servers.find(s => s.name === serverName);
+                if (server && server.status === 'running') {
+                    await apiCall(`/api/servers/${serverName}/stop`, {
+                        method: 'POST'
+                    });
+                }
+
+                // Poi elimina
+                const data = await apiCall(`/api/servers/${serverName}`, {
+                    method: 'DELETE'
+                });
+                
+                showNotification(data.message, data.success ? 'success' : 'error');
+                
+                if (data.success) {
+                    loadServers();
+                }
+            } catch (error) {
+                showNotification('Errore nell\'eliminazione del server', 'error');
+            }
+        }
+
+        function refreshServers() {
+            loadServers();
+            showNotification('Lista server aggiornata', 'success');
+        }
+
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', function() {
+            loadServers();
+            
+            // Aggiorna ogni 10 secondi
+            setInterval(loadServers, 10000);
+        });
+    </script>
+
+    <!-- Modal Import Server -->
+    <div id="importModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-import"></i> Importa Server Esistente</h2>
+                <button class="btn btn-secondary" onclick="closeImportModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="importSource">Percorso cartella sorgente (assoluto)</label>
+                    <input type="text" id="importSource" placeholder="/percorso/assoluto/cartella-server">
+                    <small style="color:#666;">Esempi: /home/utente/mcserver oppure /opt/minecraft/myserver</small>
+                </div>
+                <div class="form-group">
+                    <label for="importName">Nome destinazione (opzionale)</label>
+                    <input type="text" id="importName" placeholder="se vuoto usa il nome cartella sorgente">
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; padding: 0 20px 20px 20px;">
+                <button class="btn btn-success" onclick="confirmImport()"><i class="fas fa-check"></i> Importa</button>
+                <button class="btn btn-secondary" onclick="closeImportModal()"><i class="fas fa-times"></i> Annulla</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
