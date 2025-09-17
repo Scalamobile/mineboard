@@ -401,15 +401,15 @@
             loadSystemStats();
             loadActiveServers();
             loadAllServers();
-            // Version check
-            (async function() {
+            // Version check (initial + every 5 minutes)
+            async function checkUpdateBanner() {
                 try {
                     const info = await apiCall('/api/version');
+                    const banner = document.getElementById('updateBanner');
+                    const cur = document.getElementById('currentVersionText');
+                    const latest = document.getElementById('latestVersionText');
+                    const link = document.getElementById('updateLink');
                     if (info && info.success && info.update_available) {
-                        const banner = document.getElementById('updateBanner');
-                        const cur = document.getElementById('currentVersionText');
-                        const latest = document.getElementById('latestVersionText');
-                        const link = document.getElementById('updateLink');
                         if (cur) cur.textContent = info.version || '-';
                         if (latest) latest.textContent = info.latest || '-';
                         if (link && info.update_url) link.href = info.update_url;
@@ -417,7 +417,7 @@
                         const dismiss = document.getElementById('dismissUpdate');
                         if (dismiss) dismiss.onclick = () => { banner.style.display = 'none'; };
                         const updateBtn = document.getElementById('updateNowBtn');
-                        if (updateBtn) {
+                        if (updateBtn && !updateBtn._bound) {
                             let running = false;
                             updateBtn.onclick = async () => {
                                 if (running) return;
@@ -434,19 +434,26 @@
                                         showNotification(data.message || 'Errore aggiornamento', 'error');
                                     }
                                 } catch (e) {
-                                    showNotification('Errore aggiornamento: ' + e.message, 'error');
+                                    showNotification('Errore aggiornamento: ' + (e?.message || e), 'error');
                                 } finally {
                                     updateBtn.disabled = false;
                                     updateBtn.innerHTML = prevHtml;
                                     running = false;
                                 }
                             };
+                            updateBtn._bound = true;
                         }
+                    } else if (banner) {
+                        banner.style.display = 'none';
                     }
                 } catch (e) {
                     // ignore errors
                 }
-            })();
+            }
+
+            // run once and then every 5 minutes (300000 ms)
+            checkUpdateBanner();
+            setInterval(checkUpdateBanner, 300000);
             
             // Aggiorna ogni 2 secondi
             setInterval(() => {
