@@ -16,7 +16,8 @@ import psutil
 import shutil
 import urllib.parse
 import base64
-from datetime import datetime, timedelta
+import tempfile
+from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, abort, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -491,7 +492,7 @@ def background_version_checker():
             latest = fetch_latest_version()
             if latest:
                 version_cache['latest'] = latest
-                version_cache['last_checked'] = datetime.utcnow().isoformat()
+                version_cache['last_checked'] = datetime.now(timezone.utc).isoformat()
                 ua = compare_versions(APP_VERSION, latest) < 0
                 # Log only on change from previous state or when update available
                 if ua and not version_cache.get('update_available', False):
@@ -499,7 +500,7 @@ def background_version_checker():
                 version_cache['update_available'] = ua
         except Exception as e:
             try:
-                version_cache['last_checked'] = datetime.utcnow().isoformat()
+                version_cache['last_checked'] = datetime.now(timezone.utc).isoformat()
             except Exception:
                 pass
         # Sleep 5 minutes
@@ -572,6 +573,108 @@ def download_jar_to_server(server_name, jar_url, jar_filename="server.jar"):
             
     except Exception as e:
         return False, f"Errore nel download del JAR: {str(e)}"
+
+# ===================== AUTO-UPDATE (APP) – MIRROR MODE =====================
+def github_main_zip_url():
+    return 'https://github.com/Scalamobile/mineboard/archive/refs/heads/main.zip'
+
+def build_repo_file_set(root_dir):
+    files = set()
+    for r, dnames, fnames in os.walk(root_dir):
+        rel_root = os.path.relpath(r, root_dir)
+        if rel_root == '.':
+            rel_root = ''
+        for f in fnames:
+            rel_path = os.path.join(rel_root, f) if rel_root else f
+            files.add(rel_path.replace('\\', '/'))
+    return files
+
+def mirror_copy_repo_to_project(repo_root, project_root, preserve_dirs=None, preserve_files=None):
+    preserve_dirs = set(preserve_dirs or [])
+    preserve_files = set(preserve_files or [])
+
+    repo_files = build_repo_file_set(repo_root)
+
+    # 1) Delete local files not present in repo (excluding preserved)
+    for r, dnames, fnames in os.walk(project_root, topdown=True):
+        rel_root = os.path.relpath(r, project_root)
+        if rel_root == '.':
+            rel_root = ''
+        top_component = rel_root.split(os.sep)[0] if rel_root else ''
+        if top_component in preserve_dirs:
+            dnames[:] = []
+            continue
+        dnames[:] = [dn for dn in dnames if (top_component or dn) not in preserve_dirs]
+        for f in fnames:
+            rel_path = os.path.join(rel_root, f) if rel_root else f
+            rel_norm = rel_path.replace('\\', '/')
+            if rel_norm in preserve_files:
+                continue
+            if rel_norm.startswith('mineboard/') or rel_norm.startswith('venv/'):
+                continue
+            if rel_norm not in repo_files:
+                try:
+                    os.remove(os.path.join(project_root, rel_path))
+                except Exception:
+                    pass
+
+    # 2) Copy/overwrite files from repo into project
+    for r, dnames, fnames in os.walk(repo_root):
+        rel_root = os.path.relpath(r, repo_root)
+        if rel_root == '.':
+            rel_root = ''
+        top_component = rel_root.split(os.sep)[0] if rel_root else ''
+        if top_component in preserve_dirs:
+            continue
+        target_root = os.path.join(project_root, rel_root) if rel_root else project_root
+        os.makedirs(target_root, exist_ok=True)
+        for f in fnames:
+            rel_path = os.path.join(rel_root, f) if rel_root else f
+            if rel_path.replace('\\', '/') in preserve_files:
+                continue
+            src_path = os.path.join(r, f)
+            dst_path = os.path.join(target_root, f)
+            os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+            shutil.copy2(src_path, dst_path)
+
+@app.route('/api/system/update', methods=['POST'])
+def system_auto_update():
+    """Aggiorna i file locali a specchio dal branch main della repo, preservando cartelle/file dati."""
+    if not has_permission('settings_access'):
+        return jsonify({'success': False, 'message': 'Permesso negato'}), 403
+    try:
+        zip_url = github_main_zip_url()
+        print(f"[UPDATE] Scarico pacchetto da: {zip_url}")
+        with requests.get(zip_url, stream=True, timeout=120) as r:
+            if r.status_code != 200:
+                return jsonify({'success': False, 'message': f'Download fallito: HTTP {r.status_code}'}), 502
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmpf:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        tmpf.write(chunk)
+                tmp_zip = tmpf.name
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with zipfile.ZipFile(tmp_zip, 'r') as z:
+                z.extractall(tmpdir)
+            entries = os.listdir(tmpdir)
+            if not entries:
+                os.remove(tmp_zip)
+                return jsonify({'success': False, 'message': 'Pacchetto vuoto'}), 500
+            repo_root = os.path.join(tmpdir, entries[0])
+            if not os.path.isdir(repo_root):
+                repo_root = tmpdir
+            project_root = os.getcwd()
+            preserve_dirs = {'backups', 'logs', 'versions', 'servers', 'uploads', '.git'}
+            preserve_files = {'users.json'}
+            mirror_copy_repo_to_project(repo_root, project_root, preserve_dirs, preserve_files)
+        try:
+            os.remove(tmp_zip)
+        except Exception:
+            pass
+        print("[UPDATE] Aggiornamento mirror completato. Riavviare l'app per applicare le modifiche.")
+        return jsonify({'success': True, 'message': "Aggiornamento completato. Riavvia l'app per applicare le modifiche."})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Errore aggiornamento: {str(e)}'}), 500
 
 # ===================== MCUTILS API ROUTES =====================
 @app.route('/api/mcutils/types')
@@ -944,7 +1047,7 @@ def login():
         # Verifica OTP console
         if otp_info['password'] and not otp_info['used']:
             try:
-                now = datetime.utcnow()
+                now = datetime.now(timezone.utc)
                 if username == 'admin' and now < otp_info['expires_at'] and password == otp_info['password']:
                     session['user'] = 'admin'
                     otp_info['used'] = True
@@ -963,7 +1066,7 @@ def login():
 def forgot_password():
     # Genera password console valida 1 ora
     pwd = generate_console_password()
-    expires = datetime.utcnow() + timedelta(hours=1)
+    expires = datetime.now(timezone.utc) + timedelta(hours=1)
     otp_info['password'] = pwd
     otp_info['expires_at'] = expires
     otp_info['used'] = False

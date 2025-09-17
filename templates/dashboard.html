@@ -23,6 +23,9 @@
                 <a id="updateLink" class="btn btn-warning" href="#" target="_blank" rel="noopener noreferrer">
                     <i class="fas fa-download"></i> Scarica aggiornamento
                 </a>
+                <button id="updateNowBtn" class="btn btn-success">
+                    <i class="fas fa-bolt"></i> Aggiorna automaticamente
+                </button>
                 <button id="dismissUpdate" class="btn btn-secondary" style="margin-left:auto;">
                     <i class="fas fa-times"></i> Nascondi
                 </button>
@@ -413,6 +416,32 @@
                         banner.style.display = 'block';
                         const dismiss = document.getElementById('dismissUpdate');
                         if (dismiss) dismiss.onclick = () => { banner.style.display = 'none'; };
+                        const updateBtn = document.getElementById('updateNowBtn');
+                        if (updateBtn) {
+                            let running = false;
+                            updateBtn.onclick = async () => {
+                                if (running) return;
+                                running = true;
+                                const prevHtml = updateBtn.innerHTML;
+                                updateBtn.disabled = true;
+                                updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aggiornamento in corso...';
+                                try {
+                                    const res = await fetch('/api/system/update', { method: 'POST' });
+                                    const data = await res.json();
+                                    if (res.ok && data.success) {
+                                        showNotification('Aggiornamento completato. Riavvia l\'app.', 'success');
+                                    } else {
+                                        showNotification(data.message || 'Errore aggiornamento', 'error');
+                                    }
+                                } catch (e) {
+                                    showNotification('Errore aggiornamento: ' + e.message, 'error');
+                                } finally {
+                                    updateBtn.disabled = false;
+                                    updateBtn.innerHTML = prevHtml;
+                                    running = false;
+                                }
+                            };
+                        }
                     }
                 } catch (e) {
                     // ignore errors
