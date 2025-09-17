@@ -478,10 +478,37 @@ def fetch_latest_version():
         print(f"Errore fetch versione da Pastebin: {e}")
     return None
 
+# Background version checker cache and thread
+version_cache = {
+    'latest': None,
+    'update_available': False,
+    'last_checked': None,
+}
+
+def background_version_checker():
+    while True:
+        try:
+            latest = fetch_latest_version()
+            if latest:
+                version_cache['latest'] = latest
+                version_cache['last_checked'] = datetime.utcnow().isoformat()
+                ua = compare_versions(APP_VERSION, latest) < 0
+                # Log only on change from previous state or when update available
+                if ua and not version_cache.get('update_available', False):
+                    print(f"[UPDATE] Nuova versione disponibile: {latest} (installata: {APP_VERSION}). Scarica: {UPDATE_PAGE_URL}")
+                version_cache['update_available'] = ua
+        except Exception as e:
+            try:
+                version_cache['last_checked'] = datetime.utcnow().isoformat()
+            except Exception:
+                pass
+        # Sleep 5 minutes
+        time.sleep(300)
+
 @app.route('/api/version')
 def get_version():
     try:
-        latest = fetch_latest_version()
+        latest = version_cache.get('latest') or fetch_latest_version()
         cmp = compare_versions(APP_VERSION, latest or APP_VERSION)
         update_available = (latest is not None and cmp < 0)
         try:
@@ -2441,6 +2468,12 @@ if __name__ == '__main__':
     print(f"📁 Directory server: {SERVER_DIR}")
     print(f"📝 Directory log: {LOG_DIR}")
     print("🌐 Server disponibile su: http://localhost:8999")
+    # Avvia il checker versione in background (ogni 5 minuti)
+    try:
+        t = threading.Thread(target=background_version_checker, daemon=True)
+        t.start()
+    except Exception:
+        pass
     # Quick version check at startup (non-bloccante)
     try:
         latest = fetch_latest_version()
