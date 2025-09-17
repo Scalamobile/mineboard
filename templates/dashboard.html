@@ -11,6 +11,23 @@
 </head>
 <body>
     <div class="container">
+        <!-- Update Banner -->
+        <div id="updateBanner" style="display:none; margin-bottom: 16px; padding: 12px 16px; border-radius: 8px; background: #fff3cd; color: #856404; border: 1px solid #ffeeba;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <i class="fas fa-circle-exclamation"></i>
+                <div>
+                    <strong>Nuova versione disponibile:</strong>
+                    <span id="latestVersionText"></span>
+                    <span style="color:#6c757d;">(installata: <span id="currentVersionText"></span>)</span>
+                </div>
+                <a id="updateLink" class="btn btn-warning" href="#" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-download"></i> Scarica aggiornamento
+                </a>
+                <button id="dismissUpdate" class="btn btn-secondary" style="margin-left:auto;">
+                    <i class="fas fa-times"></i> Nascondi
+                </button>
+            </div>
+        </div>
         <div class="header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
@@ -381,6 +398,26 @@
             loadSystemStats();
             loadActiveServers();
             loadAllServers();
+            // Version check
+            (async function() {
+                try {
+                    const info = await apiCall('/api/version');
+                    if (info && info.success && info.update_available) {
+                        const banner = document.getElementById('updateBanner');
+                        const cur = document.getElementById('currentVersionText');
+                        const latest = document.getElementById('latestVersionText');
+                        const link = document.getElementById('updateLink');
+                        if (cur) cur.textContent = info.version || '-';
+                        if (latest) latest.textContent = info.latest || '-';
+                        if (link && info.update_url) link.href = info.update_url;
+                        banner.style.display = 'block';
+                        const dismiss = document.getElementById('dismissUpdate');
+                        if (dismiss) dismiss.onclick = () => { banner.style.display = 'none'; };
+                    }
+                } catch (e) {
+                    // ignore errors
+                }
+            })();
             
             // Aggiorna ogni 5 secondi
             setInterval(() => {

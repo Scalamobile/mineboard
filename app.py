@@ -44,6 +44,11 @@ VERSIONS_DIR = os.path.join(os.getcwd(), 'versions')
 ALLOWED_EXTENSIONS = {'jar', 'zip', 'txt', 'properties', 'yml', 'yaml', 'json'}
 USERS_FILE = os.path.join(os.getcwd(), 'users.json')
 
+# Versioning SE MODIFICHI QUESTA SEZIONE NIENTE PIÙ BISCOTTI :<
+APP_VERSION = os.environ.get('MINEBOARD_VERSION', '1.0.0')
+UPDATE_CHECK_URL = os.environ.get('MINEBOARD_UPDATE_URL', 'https://pastebin.com/raw/whfbJD7K')
+UPDATE_PAGE_URL = os.environ.get('MINEBOARD_UPDATE_PAGE', 'https://github.com/Scalamobile/mineboard')
+
 # Crea directory necessarie
 for directory in [SERVER_DIR, LOG_DIR, UPLOAD_FOLDER, BACKUP_DIR, VERSIONS_DIR]:
     os.makedirs(directory, exist_ok=True)
@@ -439,6 +444,83 @@ def get_url_from_versions(jar_type, version):
     except Exception as e:
         print(f"Errore lettura versions/{jar_type}: {e}")
         return None
+
+# ===================== VERSION CHECK =====================
+def parse_version(v):
+    try:
+        # Keep only digits and dots, split to ints for comparison
+        parts = [int(p) for p in str(v).strip().split('.') if p.isdigit() or p.isnumeric()]
+        return parts
+    except Exception:
+        return []
+
+def compare_versions(a, b):
+    """Return -1 if a<b, 0 if a==b, 1 if a>b for dotted versions."""
+    pa, pb = parse_version(a), parse_version(b)
+    # pad shorter
+    n = max(len(pa), len(pb))
+    pa += [0] * (n - len(pa))
+    pb += [0] * (n - len(pb))
+    for x, y in zip(pa, pb):
+        if x < y:
+            return -1
+        if x > y:
+            return 1
+    return 0
+
+def fetch_latest_version():
+    try:
+        r = requests.get(UPDATE_CHECK_URL, timeout=10)
+        if r.status_code == 200:
+            latest = r.text.strip().splitlines()[0].strip()
+            return latest
+    except Exception as e:
+        print(f"Errore fetch versione da Pastebin: {e}")
+    return None
+
+@app.route('/api/version')
+def get_version():
+    try:
+        latest = fetch_latest_version()
+        cmp = compare_versions(APP_VERSION, latest or APP_VERSION)
+        update_available = (latest is not None and cmp < 0)
+        try:
+            if update_available:
+                print(f"[UPDATE] Nuova versione disponibile: {latest} (installata: {APP_VERSION}). Scarica: {UPDATE_PAGE_URL}")
+        except Exception:
+            pass
+        return jsonify({
+            'success': True,
+            'version': APP_VERSION,
+            'latest': latest,
+            'update_available': update_available,
+            'update_url': UPDATE_PAGE_URL
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e), 'version': APP_VERSION}), 500
+
+@app.route('/api/version/check')
+def check_version():
+    try:
+        latest = fetch_latest_version()
+        if not latest:
+            return jsonify({'success': False, 'message': 'Impossibile ottenere la versione remota', 'version': APP_VERSION}), 502
+        cmp = compare_versions(APP_VERSION, latest)
+        update_available = cmp < 0
+        try:
+            if update_available:
+                print(f"[UPDATE] Nuova versione disponibile: {latest} (installata: {APP_VERSION}). Scarica: {UPDATE_PAGE_URL}")
+        except Exception:
+            pass
+        return jsonify({
+            'success': True,
+            'version': APP_VERSION,
+            'latest': latest,
+            'update_available': update_available,
+            'update_url': UPDATE_PAGE_URL
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e), 'version': APP_VERSION}), 500
 
 def download_jar_to_server(server_name, jar_url, jar_filename="server.jar"):
     """Scarica un JAR da CentroJars e lo salva nella directory del server"""
@@ -2359,6 +2441,13 @@ if __name__ == '__main__':
     print(f"📁 Directory server: {SERVER_DIR}")
     print(f"📝 Directory log: {LOG_DIR}")
     print("🌐 Server disponibile su: http://localhost:8999")
+    # Quick version check at startup (non-bloccante)
+    try:
+        latest = fetch_latest_version()
+        if latest and compare_versions(APP_VERSION, latest) < 0:
+            print(f"[UPDATE] Nuova versione disponibile: {latest} (installata: {APP_VERSION}). Scarica: {UPDATE_PAGE_URL}")
+    except Exception:
+        pass
     # Usa un server WSGI di produzione per evitare l'avviso del dev server
     try:
         from waitress import serve
