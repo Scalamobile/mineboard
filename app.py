@@ -489,13 +489,40 @@ def mcutils_download(jar_type, version):
         source = (request.args.get('source') or '').strip().lower()
         
         def send_jar(r):
-            return r.content, 200, {
+            # Stream chunks to client and log progress to console
+            total = None
+            try:
+                total = int(r.headers.get('Content-Length', '0')) or None
+            except Exception:
+                total = None
+
+            def generate():
+                downloaded = 0
+                for chunk in r.iter_content(chunk_size=8192):
+                    if not chunk:
+                        continue
+                    downloaded += len(chunk)
+                    # Console progress logging
+                    try:
+                        if total:
+                            pct = downloaded * 100.0 / total
+                            print(f"[MCUtils] Download {jar_type}-{version}: {downloaded}/{total} bytes ({pct:.1f}%)")
+                        else:
+                            print(f"[MCUtils] Download {jar_type}-{version}: {downloaded} bytes")
+                    except Exception:
+                        pass
+                    yield chunk
+
+            headers = {
                 'Content-Type': 'application/java-archive',
                 'Content-Disposition': f'attachment; filename="{jar_type}-{version}.jar"',
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type'
             }
+            if total:
+                headers['Content-Length'] = str(total)
+            return app.response_class(generate(), status=200, headers=headers)
 
         # 0) Sorgente locale in versions/ (salta se ?source=mcutils)
         if source != 'mcutils':
@@ -980,6 +1007,9 @@ def spiget_resources():
         # Ordina per downloads desc se presente
         data.sort(key=lambda x: x.get('downloads', 0), reverse=True)
         return jsonify({'success': True, 'resources': data})
+    except requests.HTTPError as he:
+        code = he.response.status_code if getattr(he, 'response', None) is not None else 502
+        return jsonify({'success': False, 'message': f'Errore Spiget: HTTP {code}'}), code
     except Exception as e:
         return jsonify({'success': False, 'message': f'Errore Spiget: {str(e)}'}), 500
 
@@ -997,6 +1027,9 @@ def spiget_search():
         data = res.json()
         data.sort(key=lambda x: x.get('downloads', 0), reverse=True)
         return jsonify({'success': True, 'resources': data})
+    except requests.HTTPError as he:
+        code = he.response.status_code if getattr(he, 'response', None) is not None else 502
+        return jsonify({'success': False, 'message': f'Errore Spiget: HTTP {code}'}), code
     except Exception as e:
         return jsonify({'success': False, 'message': f'Errore Spiget: {str(e)}'}), 500
 
@@ -1964,6 +1997,32 @@ def upload_blob(server_name):
         with open(out_path, 'wb') as f:
             f.write(raw)
         return jsonify({'success': True, 'message': f'File caricato: {safe_name}'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Errore: {str(e)}'}), 500
+
+@app.route('/api/files/<server_name>/upload', methods=['POST'])
+def upload_file(server_name):
+    """Carica un file via multipart/form-data nella cartella del server (con percorso opzionale)."""
+    if not has_permission('files_access'):
+        return jsonify({'success': False, 'message': 'Permesso negato'}), 403
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'message': 'Nessun file nella richiesta'}), 400
+        file = request.files['file']
+        if not file or file.filename.strip() == '':
+            return jsonify({'success': False, 'message': 'Nome file mancante'}), 400
+        # Percorso relativo opzionale all'interno del server
+        rel_path = (request.form.get('path') or '').strip()
+        server_path = os.path.join(SERVER_DIR, server_name)
+        if not os.path.isdir(server_path):
+            return jsonify({'success': False, 'message': 'Server non trovato'}), 404
+        # Costruisci destinazione sicura
+        safe_filename = secure_filename(file.filename)
+        dest_dir = os.path.join(server_path, rel_path) if rel_path else server_path
+        os.makedirs(dest_dir, exist_ok=True)
+        dest_path = os.path.join(dest_dir, safe_filename)
+        file.save(dest_path)
+        return jsonify({'success': True, 'message': f"File caricato: {os.path.relpath(dest_path, server_path)}"})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Errore: {str(e)}'}), 500
 

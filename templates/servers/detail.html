@@ -477,6 +477,15 @@
             <div id="jarInfo" style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none;">
                 <!-- Informazioni JAR -->
             </div>
+
+            <!-- Progress Container -->
+            <div id="jarProgress" style="display:none; margin-bottom: 16px;">
+                <div id="jarProgressPhase" style="margin-bottom: 6px; color:#333; font-weight:600;">Preparazione...</div>
+                <div style="width: 100%; background: #e9ecef; border-radius: 8px; height: 12px; overflow: hidden;">
+                    <div id="jarProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #28a745, #20c997); transition: width 0.15s ease;"></div>
+                </div>
+                <div id="jarProgressText" style="margin-top:6px; color:#666; font-size: 13px;">0%</div>
+            </div>
             
             <div style="display: flex; gap: 15px;">
                 <button class="btn btn-success" onclick="downloadJarToServer()">
@@ -2201,39 +2210,76 @@
             
             try {
                 showNotification('Download JAR in corso...', 'success');
-                
-                // Scarica il JAR tramite proxy locale (per CORS) da MCUtils
+                const progressWrap = document.getElementById('jarProgress');
+                const progressBar = document.getElementById('jarProgressBar');
+                const progressText = document.getElementById('jarProgressText');
+                const progressPhase = document.getElementById('jarProgressPhase');
+                const setProgress = (pct, phase, extra='') => {
+                    progressWrap.style.display = 'block';
+                    progressBar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+                    if (phase) progressPhase.textContent = phase;
+                    progressText.textContent = `${pct.toFixed(0)}% ${extra}`.trim();
+                };
+                setProgress(0, 'Download in corso...');
+
+                // Streaming download via fetch
                 const response = await fetch(`/api/mcutils/download/${category}/${version}`);
-                
-                if (response.ok) {
-                    // Salva il JAR nel server
-                    const blob = await response.blob();
-                    
-                    // Converti blob in base64
-                    const reader = new FileReader();
-                    reader.onload = async function() {
-                        const base64Data = reader.result.split(',')[1]; // Rimuovi il prefisso data:application/java-archive;base64,
-                        
-                        const uploadResult = await apiCall(`/api/files/${serverName}/upload-blob`, {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                filename: filename,
-                                file_data: base64Data
-                            })
-                        });
-                        
-                        if (uploadResult.success) {
-                            showNotification(`JAR ${category} v${version} scaricato con successo!`, 'success');
-                            closeJarDownloader();
-                            refreshFiles();
-                        } else {
-                            showNotification('Errore nel salvataggio del JAR: ' + uploadResult.message, 'error');
+                if (!response.ok) {
+                    showNotification(`Version ${version} not found for ${category}.`, 'error');
+                    return;
+                }
+                const contentLengthHeader = response.headers.get('Content-Length') || response.headers.get('content-length');
+                const total = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
+                const reader = response.body.getReader();
+                const chunks = [];
+                let received = 0;
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    chunks.push(value);
+                    received += value.length;
+                    if (total > 0) {
+                        setProgress(received * 100 / total, 'Download in corso...', `${(received/1024/1024).toFixed(1)} / ${(total/1024/1024).toFixed(1)} MB`);
+                    } else {
+                        // Unknown size
+                        setProgress(Math.min(99, (received % (10*1024*1024)) / (10*1024*1024) * 100), 'Download in corso...', `${(received/1024/1024).toFixed(1)} MB`);
+                    }
+                }
+                const blob = new Blob(chunks, { type: 'application/java-archive' });
+
+                // Upload via multipart with XHR to get progress events
+                setProgress(0, 'Upload al server...');
+                await new Promise((resolve, reject) => {
+                    const formData = new FormData();
+                    formData.append('file', blob, filename);
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', `/api/files/${serverName}/upload`);
+                    xhr.upload.onprogress = (e) => {
+                        if (e.lengthComputable) {
+                            const pct = e.loaded * 100 / e.total;
+                            setProgress(pct, 'Upload al server...', `${(e.loaded/1024/1024).toFixed(1)} / ${(e.total/1024/1024).toFixed(1)} MB`);
                         }
                     };
-                    reader.readAsDataURL(blob);
-                } else {
-                    showNotification(`Version ${version} not found for ${category}.`, 'error');
-                }
+                    xhr.onload = () => {
+                        try {
+                            const res = JSON.parse(xhr.responseText || '{}');
+                            if (xhr.status >= 200 && xhr.status < 300 && res.success) {
+                                setProgress(100, 'Completato');
+                                resolve(res);
+                            } else {
+                                reject(new Error(res.message || `Upload failed (${xhr.status})`));
+                            }
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    xhr.onerror = () => reject(new Error('Errore di rete durante upload'));
+                    xhr.send(formData);
+                });
+
+                showNotification(`JAR ${category} v${version} scaricato con successo!`, 'success');
+                closeJarDownloader();
+                refreshFiles();
             } catch (error) {
                 showNotification('Error downloading JAR: ' + error.message, 'error');
             }
