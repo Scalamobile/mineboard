@@ -46,7 +46,7 @@ ALLOWED_EXTENSIONS = {'jar', 'zip', 'txt', 'properties', 'yml', 'yaml', 'json'}
 USERS_FILE = os.path.join(os.getcwd(), 'users.json')
 
 # Versioning SE MODIFICHI QUESTA SEZIONE NIENTE PIÙ BISCOTTI :<
-APP_VERSION = os.environ.get('MINEBOARD_VERSION', '1.0.2')
+APP_VERSION = os.environ.get('MINEBOARD_VERSION', '1.0.3')
 UPDATE_CHECK_URL = os.environ.get('MINEBOARD_UPDATE_URL', 'https://pastebin.com/raw/whfbJD7K')
 UPDATE_PAGE_URL = os.environ.get('MINEBOARD_UPDATE_PAGE', 'https://github.com/Scalamobile/mineboard')
 
@@ -311,6 +311,8 @@ def load_server_internal_config(server_name):
         'jar_file': 'server.jar',
         'max_memory': '1G',
         'status': 'stopped',
+        'use_custom_start': False,
+        'custom_start_cmd': '',
         'webhook': {
             'url': '',
             'triggers': {
@@ -341,6 +343,9 @@ def load_server_internal_config(server_name):
                     wb['triggers'].setdefault(t, False)
                 wb.setdefault('player_match_username', '')
                 cfg['webhook'] = wb
+                # Ensure custom start keys exist after merge
+                cfg.setdefault('use_custom_start', False)
+                cfg.setdefault('custom_start_cmd', '')
     except Exception as e:
         print(f"Errore nel caricare config server {server_name}: {e}")
     return cfg
@@ -493,7 +498,8 @@ def background_version_checker():
             if latest:
                 version_cache['latest'] = latest
                 version_cache['last_checked'] = datetime.now(timezone.utc).isoformat()
-                ua = compare_versions(APP_VERSION, latest) < 0
+                # Treat any mismatch as update available
+                ua = compare_versions(APP_VERSION, latest) != 0
                 # Log only on change from previous state or when update available
                 if ua and not version_cache.get('update_available', False):
                     print(f"[UPDATE] Nuova versione disponibile: {latest} (installata: {APP_VERSION}). Scarica: {UPDATE_PAGE_URL}")
@@ -503,15 +509,15 @@ def background_version_checker():
                 version_cache['last_checked'] = datetime.now(timezone.utc).isoformat()
             except Exception:
                 pass
-        # Sleep 5 minutes
-        time.sleep(300)
+        # Sleep 2 minutes
+        time.sleep(120)
 
 @app.route('/api/version')
 def get_version():
     try:
         latest = version_cache.get('latest') or fetch_latest_version()
         cmp = compare_versions(APP_VERSION, latest or APP_VERSION)
-        update_available = (latest is not None and cmp < 0)
+        update_available = (latest is not None and cmp != 0)
         try:
             if update_available:
                 print(f"[UPDATE] Nuova versione disponibile: {latest} (installata: {APP_VERSION}). Scarica: {UPDATE_PAGE_URL}")
@@ -534,7 +540,7 @@ def check_version():
         if not latest:
             return jsonify({'success': False, 'message': 'Impossibile ottenere la versione remota', 'version': APP_VERSION}), 502
         cmp = compare_versions(APP_VERSION, latest)
-        update_available = cmp < 0
+        update_available = cmp != 0
         try:
             if update_available:
                 print(f"[UPDATE] Nuova versione disponibile: {latest} (installata: {APP_VERSION}). Scarica: {UPDATE_PAGE_URL}")
@@ -832,12 +838,14 @@ def mcutils_download(jar_type, version):
         return jsonify({'success': False, 'message': f'Errore: {str(e)}'}), 500
 
 class MinecraftServer:
-    def __init__(self, name, port, jar_file, max_memory='1G', platform='minecraft'):
+    def __init__(self, name, port, jar_file, max_memory='1G', platform='minecraft', use_custom_start=False, custom_start_cmd=''):
         self.name = name
         self.port = port
         self.jar_file = jar_file
         self.max_memory = max_memory
         self.platform = platform or 'minecraft'
+        self.use_custom_start = bool(use_custom_start)
+        self.custom_start_cmd = (custom_start_cmd or '').strip()
         self.process = None
         self.status = 'stopped'
         self.stopping = False  # per distinguere arresto intenzionale da crash
@@ -860,14 +868,19 @@ class MinecraftServer:
                     return False, "EULA_NOT_ACCEPTED"
             
             # Comando per avviare il server
-            cmd = [
-                'java', 
-                f'-Xmx{self.max_memory}',
-                f'-Xms{self.max_memory}',
-                '-jar', 
-                jar_path,
-                'nogui'
-            ]
+            if self.use_custom_start and self.custom_start_cmd:
+                cmd = self.custom_start_cmd
+                use_shell = True
+            else:
+                cmd = [
+                    'java', 
+                    f'-Xmx{self.max_memory}',
+                    f'-Xms{self.max_memory}',
+                    '-jar', 
+                    jar_path,
+                    'nogui'
+                ]
+                use_shell = False
             
             # Avvia il processo
             with open(self.log_file, 'a') as log:
@@ -877,7 +890,8 @@ class MinecraftServer:
                     stderr=subprocess.STDOUT,
                     stdin=subprocess.PIPE,
                     text=True,
-                    cwd=os.path.join(SERVER_DIR, self.name)
+                    cwd=os.path.join(SERVER_DIR, self.name),
+                    shell=use_shell
                 )
             
             self.status = 'running'
@@ -1890,6 +1904,10 @@ def update_server_config(server_name):
                 pass
         if 'jar_file' in data:
             cfg['jar_file'] = str(data['jar_file']).strip()
+        if 'use_custom_start' in data:
+            cfg['use_custom_start'] = bool(data['use_custom_start'])
+        if 'custom_start_cmd' in data:
+            cfg['custom_start_cmd'] = str(data['custom_start_cmd']).strip()
 
         with open(config_file, 'w') as f:
             json.dump(cfg, f, indent=2)
@@ -1947,7 +1965,9 @@ def start_server(server_name):
         config['port'],
         config['jar_file'],
         config['max_memory'],
-        config.get('platform', 'minecraft')
+        config.get('platform', 'minecraft'),
+        config.get('use_custom_start', False),
+        config.get('custom_start_cmd', '')
     )
     
     success, message = server.start()
@@ -2571,7 +2591,7 @@ if __name__ == '__main__':
     print(f"📁 Directory server: {SERVER_DIR}")
     print(f"📝 Directory log: {LOG_DIR}")
     print("🌐 Server disponibile su: http://localhost:8999")
-    # Avvia il checker versione in background (ogni 5 minuti)
+    # Avvia il checker versione in background (ogni 2 minuti)
     try:
         t = threading.Thread(target=background_version_checker, daemon=True)
         t.start()
@@ -2580,7 +2600,7 @@ if __name__ == '__main__':
     # Quick version check at startup (non-bloccante)
     try:
         latest = fetch_latest_version()
-        if latest and compare_versions(APP_VERSION, latest) < 0:
+        if latest and compare_versions(APP_VERSION, latest) != 0:
             print(f"[UPDATE] Nuova versione disponibile: {latest} (installata: {APP_VERSION}). Scarica: {UPDATE_PAGE_URL}")
     except Exception:
         pass
