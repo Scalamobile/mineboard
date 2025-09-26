@@ -2,3 +2,4 @@
 servers
 logs
 mineboard
+.env
