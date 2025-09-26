@@ -4,59 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MineBoard - Dashboard</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <!-- Dark theme handled globally via style.css and common.js -->
 </head>
 <body>
     <div class="container">
         <!-- Update Banner -->
-        <div id="updateBanner" class="update-banner" style="display:none;">
-            <div class="update-banner-content">
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center justify-center w-12 h-12 bg-white bg-opacity-20 rounded-xl">
-                        <i class="fas fa-download text-xl"></i>
-                    </div>
-                    <div class="update-banner-text">
-                        <div class="font-semibold text-lg">New version available: <span id="latestVersionText"></span></div>
-                        <div class="text-sm opacity-90">Current version: <span id="currentVersionText"></span></div>
-                    </div>
+        <div id="updateBanner" style="display:none; margin-bottom: 16px; padding: 12px 16px; border-radius: 8px; background: #fff3cd; color: #856404; border: 1px solid #ffeeba;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <i class="fas fa-circle-exclamation"></i>
+                <div>
+                    <strong>Nuova versione disponibile:</strong>
+                    <span id="latestVersionText"></span>
+                    <span style="color:#6c757d;">(installata: <span id="currentVersionText"></span>)</span>
                 </div>
-                <div class="update-banner-actions">
-                    <a id="updateLink" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer">
-                        <i class="fas fa-external-link-alt"></i> Download
-                    </a>
-                    <button id="updateNowBtn" class="btn btn-success">
-                        <i class="fas fa-bolt"></i> Update Now
-                    </button>
-                    <button id="dismissUpdate" class="btn btn-ghost">
-                        <i class="fas fa-times"></i> Dismiss
-                    </button>
-                </div>
+                <a id="updateLink" class="btn btn-warning" href="#" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-download"></i> Scarica aggiornamento
+                </a>
+                <button id="updateNowBtn" class="btn btn-success">
+                    <i class="fas fa-bolt"></i> Aggiorna automaticamente
+                </button>
+                <button id="dismissUpdate" class="btn btn-secondary" style="margin-left:auto;">
+                    <i class="fas fa-times"></i> Nascondi
+                </button>
             </div>
         </div>
-
-        <!-- Header -->
         <div class="header">
-            <div class="header-content">
-                <div class="header-title">
-                    <div>
-                        <h1><i class="fas fa-cube"></i> MineBoard</h1>
-                        <p>Complete Minecraft server management dashboard</p>
-                    </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1><i class="fas fa-cube"></i> MineBoard</h1>
+                    <p>Complete Minecraft server management by Scalamobile</p>
                 </div>
-                <div class="header-actions">
-                    <div class="theme-switcher">
-                        <input type="checkbox" id="theme-toggle">
-                        <label for="theme-toggle">
-                            <i class="fas fa-moon"></i>
-                            <i class="fas fa-sun"></i>
-                        </label>
-                    </div>
-                    {% if permissions.settings_access %}
-                    <a href="/settings/users" class="btn btn-ghost" title="Settings">
-                        <i class="fas fa-cog"></i>
-                    </a>
-                    {% endif %}
+                <div class="theme-switcher">
+                    <input type="checkbox" id="theme-toggle">
+                    <label for="theme-toggle">
+                        <i class="fas fa-moon"></i>
+                        <i class="fas fa-sun"></i>
+                    </label>
                 </div>
             </div>
         </div>
@@ -64,33 +50,28 @@
         <!-- System Statistics -->
         <div class="card">
             <div class="card-header">
-                <div class="card-title">
-                    <i class="fas fa-chart-line"></i>
-                    <h2>System Statistics</h2>
-                </div>
-                <button class="btn btn-ghost" onclick="refreshStats()">
-                    <i class="fas fa-sync"></i> Refresh
-                </button>
+                <i class="fas fa-chart-line"></i>
+                <h2>System Statistics</h2>
             </div>
             
-            <div class="stats-grid" id="systemStats">
+            <div class="system-stats" id="systemStats">
                 <div class="stat-card">
                     <div class="stat-value">--</div>
-                    <div class="stat-label">CPU Usage</div>
+                    <div class="stat-label">CPU</div>
                     <div class="progress-bar">
                         <div class="progress-fill" style="width: 0%"></div>
                     </div>
                 </div>
-                <div class="stat-card" style="background: var(--gradient-success);">
+                <div class="stat-card">
                     <div class="stat-value">--</div>
-                    <div class="stat-label">Memory Usage</div>
+                    <div class="stat-label">Memoria</div>
                     <div class="progress-bar">
                         <div class="progress-fill" style="width: 0%"></div>
                     </div>
                 </div>
-                <div class="stat-card" style="background: var(--gradient-warning);">
+                <div class="stat-card">
                     <div class="stat-value">--</div>
-                    <div class="stat-label">Disk Usage</div>
+                    <div class="stat-label">Disco</div>
                     <div class="progress-bar">
                         <div class="progress-fill" style="width: 0%"></div>
                     </div>
@@ -101,48 +82,42 @@
         <!-- Quick Actions -->
         <div class="card">
             <div class="card-header">
-                <div class="card-title">
-                    <i class="fas fa-bolt"></i>
-                    <h2>Quick Actions</h2>
-                </div>
+                <i class="fas fa-bolt"></i>
+                <h2>Quick Actions</h2>
             </div>
             
-            <div class="flex gap-3 flex-wrap">
-                <a href="/servers" class="btn btn-primary btn-lg">
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <a href="/servers" class="btn btn-primary">
                     <i class="fas fa-server"></i> Manage Servers
                 </a>
-                <a href="/servers/new" class="btn btn-success btn-lg">
-                    <i class="fas fa-plus"></i> Create Server
+                <a href="/servers/new" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Create New Server
                 </a>
                 {% if permissions.settings_access %}
                 <a href="/settings/users" class="btn btn-secondary">
-                    <i class="fas fa-users-cog"></i> User Settings
+                    <i class="fas fa-gear"></i> Impostazioni
                 </a>
                 {% endif %}
                 <a href="/logout" class="btn btn-warning">
-                    <i class="fas fa-sign-out-alt"></i> Logout
+                    <i class="fas fa-right-from-bracket"></i> Logout
                 </a>
+                <button class="btn btn-secondary" onclick="refreshStats()">
+                    <i class="fas fa-sync"></i> Refresh Statistics
+                </button>
             </div>
         </div>
 
         <!-- Active Servers -->
         <div class="card">
             <div class="card-header">
-                <div class="card-title">
-                    <i class="fas fa-play-circle"></i>
-                    <h2>Active Servers</h2>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="status-badge status-running">
-                        <span id="activeServerCount">0</span> Running
-                    </div>
-                </div>
+                <i class="fas fa-play-circle"></i>
+                <h2>Active Servers</h2>
             </div>
             
             <div id="activeServers">
-                <div class="loading">
-                    <i class="fas fa-spinner"></i>
-                    <span>Loading active servers...</span>
+                <div style="text-align: center; color: #666; padding: 40px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 15px;"></i>
+                    <p>Loading servers...</p>
                 </div>
             </div>
         </div>
@@ -150,24 +125,19 @@
         <!-- All Servers -->
         <div class="card">
             <div class="card-header">
-                <div class="card-title">
-                    <i class="fas fa-list"></i>
-                    <h2>All Servers</h2>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center gap-2 text-sm text-secondary">
-                        <span id="totalServerCount">0</span> Total Servers
-                    </div>
+                <i class="fas fa-list"></i>
+                <h2>Tutti i Server</h2>
+                <div style="margin-left: auto;">
                     <a href="/servers" class="btn btn-secondary">
-                        <i class="fas fa-external-link-alt"></i> View All
+                        <i class="fas fa-server"></i> Vai alla Lista
                     </a>
                 </div>
             </div>
 
             <div id="allServers">
-                <div class="loading">
-                    <i class="fas fa-spinner"></i>
-                    <span>Loading servers...</span>
+                <div style="text-align: center; color: #666; padding: 40px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 15px;"></i>
+                    <p>Caricamento server...</p>
                 </div>
             </div>
         </div>
@@ -175,179 +145,113 @@
         <!-- System Information -->
         <div class="card">
             <div class="card-header">
-                <div class="card-title">
-                    <i class="fas fa-info-circle"></i>
-                    <h2>System Information</h2>
-                </div>
+                <i class="fas fa-info-circle"></i>
+                <h2>System Information</h2>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-tertiary rounded-xl p-5 border border-primary">
-                    <h3 class="flex items-center gap-3 mb-4 font-semibold text-lg">
-                        <div class="flex items-center justify-center w-10 h-10 bg-primary-100 rounded-lg">
-                            <i class="fas fa-server text-primary-600"></i>
-                        </div>
-                        Web Server
-                    </h3>
-                    <div class="text-secondary space-y-2">
-                        <p class="flex items-center gap-2">
-                            <i class="fas fa-circle text-xs text-success-500"></i>
-                            MineBoard Dashboard
-                        </p>
-                        <p class="flex items-center gap-2">
-                            <i class="fas fa-circle text-xs text-primary-500"></i>
-                            Port: 8999
-                        </p>
-                        <p class="flex items-center gap-2">
-                            <i class="fas fa-circle text-xs text-warning-500"></i>
-                            Python Flask
-                        </p>
-                    </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div>
+                    <h3><i class="fas fa-server"></i> Web Server</h3>
+                    <p>MineBoard Dashboard</p>
+                    <p>Port: 8999</p>
                 </div>
-                
-                <div class="bg-tertiary rounded-xl p-5 border border-primary">
-                    <h3 class="flex items-center gap-3 mb-4 font-semibold text-lg">
-                        <div class="flex items-center justify-center w-10 h-10 bg-success-100 rounded-lg">
-                            <i class="fas fa-folder text-success-600"></i>
-                        </div>
-                        Directories
-                    </h3>
-                    <div class="text-secondary space-y-2">
-                        <p class="flex items-center gap-2">
-                            <i class="fas fa-circle text-xs text-primary-500"></i>
-                            Servers: ./servers/
-                        </p>
-                        <p class="flex items-center gap-2">
-                            <i class="fas fa-circle text-xs text-warning-500"></i>
-                            Logs: ./logs/
-                        </p>
-                        <p class="flex items-center gap-2">
-                            <i class="fas fa-circle text-xs text-info-500"></i>
-                            Uploads: ./uploads/
-                        </p>
-                    </div>
+                <div>
+                    <h3><i class="fas fa-folder"></i> Directory</h3>
+                    <p>Server: ./servers/</p>
+                    <p>Log: ./logs/</p>
                 </div>
-                
-                <div class="bg-tertiary rounded-xl p-5 border border-primary">
-                    <h3 class="flex items-center gap-3 mb-4 font-semibold text-lg">
-                        <div class="flex items-center justify-center w-10 h-10 bg-warning-100 rounded-lg">
-                            <i class="fas fa-cog text-warning-600"></i>
-                        </div>
-                        Features
-                    </h3>
-                    <div class="text-secondary space-y-2">
-                        <p class="flex items-center gap-2">
-                            <i class="fas fa-check text-xs text-success-500"></i>
-                            Multi-server management
-                        </p>
-                        <p class="flex items-center gap-2">
-                            <i class="fas fa-check text-xs text-success-500"></i>
-                            Real-time console
-                        </p>
-                        <p class="flex items-center gap-2">
-                            <i class="fas fa-check text-xs text-success-500"></i>
-                            File management
-                        </p>
-                    </div>
+                <div>
+                    <h3><i class="fas fa-cog"></i> Configurazione</h3>
+                    <p>Python Flask</p>
+                    <p>Interfaccia Web</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Notification -->
+    <!-- Notifiche -->
     <div id="notification"></div>
 
     <script src="{{ url_for('static', filename='js/common.js') }}"></script>
     <script>
-        // Load system stats
+        // Dark theme is managed globally via common.js (initThemeSwitcher)
+
+        // Carica statistiche sistema
         async function loadSystemStats() {
             try {
                 const data = await apiCall('/api/system/stats');
                 if (data.success) {
-                    updateSystemStats(data.stats);
+                    const stats = data.stats;
+                    updateSystemStats(stats);
                 }
             } catch (error) {
-                console.error('Error loading system stats:', error);
+                console.error('Errore nel caricamento statistiche:', error);
             }
         }
 
-        // Load all servers
+        // Carica tutti i server
         async function loadAllServers() {
             try {
                 const data = await apiCall('/api/servers');
                 const container = document.getElementById('allServers');
-                const totalCount = document.getElementById('totalServerCount');
-
-                if (totalCount) {
-                    totalCount.textContent = data ? data.length : 0;
-                }
 
                 if (!data || data.length === 0) {
                     container.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-server"></i>
-                            <h3>No servers found</h3>
-                            <p>Create your first Minecraft server to get started</p>
-                            <a href="/servers/new" class="btn btn-success btn-lg">
-                                <i class="fas fa-plus"></i> Create First Server
+                        <div style="text-align: center; color: #666; padding: 40px;">
+                            <i class=\"fas fa-server\" style=\"font-size: 3rem; margin-bottom: 20px; opacity: 0.3;\"></i>
+                            <h3>Nessun server trovato</h3>
+                            <p style=\"margin-bottom: 20px;\">Crea il tuo primo server Minecraft</p>
+                            <a href=\"/servers/new\" class=\"btn btn-success\">
+                                <i class=\"fas fa-plus\"></i> Crea Primo Server
                             </a>
                         </div>
                     `;
                     return;
                 }
 
-                container.innerHTML = `
-                    <div class="server-grid">
-                        ${data.map(server => `
-                            <div class="server-item">
-                                <div class="server-header">
-                                    <div class="server-info">
-                                        <h3>${server.name}</h3>
-                                        <div class="server-meta">
-                                            <span><i class="fas fa-plug"></i> Port: ${server.port}</span>
-                                            <span><i class="fas fa-memory"></i> RAM: ${server.max_memory}</span>
-                                            <span><i class="fas fa-file-archive"></i> ${server.jar_file}</span>
-                                        </div>
-                                    </div>
-                                    <div class="status-badge ${server.status === 'running' ? 'status-running' : 'status-stopped'}">
-                                        ${server.status === 'running' ? 'Running' : 'Stopped'}
-                                    </div>
-                                </div>
-                                <div class="server-actions">
-                                    <a href="/servers/${server.name}" class="btn btn-primary">
-                                        <i class="fas fa-cog"></i> Manage
-                                    </a>
-                                    ${server.status === 'running' ?
-                                        `<button class="btn btn-danger" onclick="stopServerFromDashboard('${server.name}')">
-                                            <i class="fas fa-stop"></i> Stop
-                                        </button>` :
-                                        `<button class="btn btn-success" onclick="startServerFromDashboard('${server.name}')">
-                                            <i class="fas fa-play"></i> Start
-                                        </button>`
-                                    }
-                                    <button class="btn btn-warning" onclick="restartServerFromDashboard('${server.name}')">
-                                        <i class="fas fa-redo"></i> Restart
-                                    </button>
+                container.innerHTML = data.map(server => `
+                    <div class=\"server-item\">
+                        <div class=\"server-info\">
+                            <div>
+                                <div class=\"server-name\">${server.name}</div>
+                                <div style=\"color: #666; font-size: 0.9rem; margin-top: 5px;\">
+                                    <i class=\"fas fa-plug\"></i> Porta: ${server.port} |
+                                    <i class=\"fas fa-memory\"></i> RAM: ${server.max_memory} |
+                                    <i class=\"fas fa-file-archive\"></i> JAR: ${server.jar_file}
                                 </div>
                             </div>
-                        `).join('')}
+                            <div class=\"server-status ${server.status === 'running' ? 'status-running' : 'status-stopped'}\">
+                                ${server.status === 'running' ? 'In Esecuzione' : 'Fermato'}
+                            </div>
+                        </div>
+                        <div style=\"display: flex; gap: 10px; flex-wrap: wrap;\">
+                            <a href=\"/servers/${server.name}\" class=\"btn btn-primary\">
+                                <i class=\"fas fa-cog\"></i> Gestisci
+                            </a>
+                            ${server.status === 'running' ?
+                                `<button class=\"btn btn-danger\" onclick=\"stopServerFromDashboard('${server.name}')\">`+
+                                    `<i class=\"fas fa-stop\"></i> Ferma`+
+                                `</button>` :
+                                `<button class=\"btn btn-success\" onclick=\"startServerFromDashboard('${server.name}')\">`+
+                                    `<i class=\"fas fa-play\"></i> Avvia`+
+                                `</button>`
+                            }
+                            <button class=\"btn btn-warning\" onclick=\"restartServerFromDashboard('${server.name}')\">
+                                <i class=\"fas fa-redo\"></i> Riavvia
+                            </button>
+                        </div>
                     </div>
-                `;
+                `).join('');
             } catch (error) {
                 document.getElementById('allServers').innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-triangle" style="color: var(--danger-500);"></i>
-                        <h3>Error loading servers</h3>
-                        <p>Please try refreshing the page</p>
-                        <button class="btn btn-primary" onclick="loadAllServers()">
-                            <i class="fas fa-refresh"></i> Retry
-                        </button>
-                    </div>
-                `;
+                    <div style=\"text-align: center; color: #ff6b6b; padding: 40px;\">`+
+                        `<i class=\"fas fa-exclamation-triangle\" style=\"font-size: 2rem; margin-bottom: 15px;\"></i>`+
+                        `<p>Errore nel caricamento dei server</p>`+
+                    `</div>`;
             }
         }
 
-        // Server actions from dashboard
+        // Azioni rapide dalla dashboard
         async function startServerFromDashboard(serverName) {
             try {
                 const data = await apiCall(`/api/servers/${serverName}/start`, { method: 'POST' });
@@ -357,12 +261,12 @@
                     loadAllServers();
                 }
             } catch (e) {
-                showNotification('Error starting server', 'error');
+                showNotification('Errore nell\'avvio del server', 'error');
             }
         }
 
         async function stopServerFromDashboard(serverName) {
-            if (!confirm(`Are you sure you want to stop "${serverName}"?`)) return;
+            if (!confirm(`Sei sicuro di voler fermare il server \"${serverName}\"?`)) return;
             try {
                 const data = await apiCall(`/api/servers/${serverName}/stop`, { method: 'POST' });
                 showNotification(data.message, data.success ? 'success' : 'error');
@@ -371,13 +275,14 @@
                     loadAllServers();
                 }
             } catch (e) {
-                showNotification('Error stopping server', 'error');
+                showNotification('Errore nella fermata del server', 'error');
             }
         }
 
         async function restartServerFromDashboard(serverName) {
-            if (!confirm(`Are you sure you want to restart "${serverName}"?`)) return;
+            if (!confirm(`Sei sicuro di voler riavviare il server \"${serverName}\"?`)) return;
             try {
+                // Stop
                 const stopData = await apiCall(`/api/servers/${serverName}/stop`, { method: 'POST' });
                 if (stopData.success) {
                     setTimeout(async () => {
@@ -387,105 +292,86 @@
                             loadActiveServers();
                             loadAllServers();
                         } catch (e) {
-                            showNotification('Error restarting server', 'error');
+                            showNotification('Errore nel riavvio del server', 'error');
                         }
                     }, 2000);
                 } else {
                     showNotification(stopData.message, 'error');
                 }
             } catch (e) {
-                showNotification('Error restarting server', 'error');
+                showNotification('Errore nel riavvio del server', 'error');
             }
         }
 
         function updateSystemStats(stats) {
-            const statCards = document.querySelectorAll('.stat-card');
-            
-            if (statCards[0]) {
-                statCards[0].querySelector('.stat-value').textContent = stats.cpu_percent.toFixed(1) + '%';
-                statCards[0].querySelector('.progress-fill').style.width = stats.cpu_percent + '%';
+            const cpuCard = document.querySelector('.stat-card:nth-child(1)');
+            const memoryCard = document.querySelector('.stat-card:nth-child(2)');
+            const diskCard = document.querySelector('.stat-card:nth-child(3)');
+
+            if (cpuCard) {
+                cpuCard.querySelector('.stat-value').textContent = stats.cpu_percent.toFixed(1) + '%';
+                cpuCard.querySelector('.progress-fill').style.width = stats.cpu_percent + '%';
             }
 
-            if (statCards[1]) {
-                statCards[1].querySelector('.stat-value').textContent = stats.memory_percent.toFixed(1) + '%';
-                statCards[1].querySelector('.progress-fill').style.width = stats.memory_percent + '%';
+            if (memoryCard) {
+                memoryCard.querySelector('.stat-value').textContent = stats.memory_percent.toFixed(1) + '%';
+                memoryCard.querySelector('.progress-fill').style.width = stats.memory_percent + '%';
             }
 
-            if (statCards[2]) {
-                statCards[2].querySelector('.stat-value').textContent = stats.disk_percent.toFixed(1) + '%';
-                statCards[2].querySelector('.progress-fill').style.width = stats.disk_percent + '%';
+            if (diskCard) {
+                diskCard.querySelector('.stat-value').textContent = stats.disk_percent.toFixed(1) + '%';
+                diskCard.querySelector('.progress-fill').style.width = stats.disk_percent + '%';
             }
         }
 
-        // Load active servers
+        // Carica server attivi
         async function loadActiveServers() {
             try {
                 const data = await apiCall('/api/servers');
                 const activeServers = data.filter(server => server.status === 'running');
-                const activeCount = document.getElementById('activeServerCount');
-                
-                if (activeCount) {
-                    activeCount.textContent = activeServers.length;
-                }
                 
                 const container = document.getElementById('activeServers');
                 
                 if (activeServers.length === 0) {
                     container.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-server"></i>
-                            <h3>No active servers</h3>
-                            <p>Start a server to see it here</p>
-                            <a href="/servers/new" class="btn btn-primary btn-lg">
-                                <i class="fas fa-plus"></i> Create Server
+                        <div style="text-align: center; color: #666; padding: 40px;">
+                            <i class="fas fa-server" style="font-size: 2rem; margin-bottom: 15px; opacity: 0.3;"></i>
+                            <p>Nessun server attivo</p>
+                            <a href="/servers/new" class="btn btn-primary" style="margin-top: 15px;">
+                                <i class="fas fa-plus"></i> Crea Primo Server
                             </a>
                         </div>
                     `;
                 } else {
-                    container.innerHTML = `
-                        <div class="server-grid">
-                            ${activeServers.map(server => `
-                                <div class="server-item">
-                                    <div class="server-header">
-                                        <div class="server-info">
-                                            <h3>${server.name}</h3>
-                                            <div class="server-meta">
-                                                <span><i class="fas fa-plug"></i> Port: ${server.port}</span>
-                                                <span><i class="fas fa-memory"></i> RAM: ${server.max_memory}</span>
-                                                <span><i class="fas fa-clock"></i> Uptime: <span id="uptime-${server.name}">--</span></span>
-                                            </div>
-                                        </div>
-                                        <div class="status-badge status-running">Running</div>
-                                    </div>
-                                    <div class="server-actions">
-                                        <a href="/servers/${server.name}" class="btn btn-primary">
-                                            <i class="fas fa-cog"></i> Manage
-                                        </a>
-                                        <button class="btn btn-danger" onclick="stopServer('${server.name}')">
-                                            <i class="fas fa-stop"></i> Stop
-                                        </button>
-                                    </div>
-                                </div>
-                            `).join('')}
+                    container.innerHTML = activeServers.map(server => `
+                        <div class="server-item">
+                            <div class="server-info">
+                                <div class="server-name">${server.name}</div>
+                                <div class="server-status status-running">In Esecuzione</div>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <a href="/servers/${server.name}" class="btn btn-primary">
+                                    <i class="fas fa-cog"></i> Gestisci
+                                </a>
+                                <button class="btn btn-danger" onclick="stopServer('${server.name}')">
+                                    <i class="fas fa-stop"></i> Ferma
+                                </button>
+                            </div>
                         </div>
-                    `;
+                    `).join('');
                 }
             } catch (error) {
                 document.getElementById('activeServers').innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-triangle" style="color: var(--danger-500);"></i>
-                        <h3>Error loading active servers</h3>
-                        <p>Please try refreshing the page</p>
-                        <button class="btn btn-primary" onclick="loadActiveServers()">
-                            <i class="fas fa-refresh"></i> Retry
-                        </button>
+                    <div style="text-align: center; color: #ff6b6b; padding: 40px;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 15px;"></i>
+                        <p>Errore nel caricamento dei server</p>
                     </div>
                 `;
             }
         }
 
         async function stopServer(serverName) {
-            if (!confirm(`Are you sure you want to stop "${serverName}"?`)) {
+            if (!confirm(`Sei sicuro di voler fermare il server "${serverName}"?`)) {
                 return;
             }
 
@@ -498,27 +384,24 @@
                 
                 if (data.success) {
                     loadActiveServers();
-                    loadAllServers();
                 }
             } catch (error) {
-                showNotification('Error stopping server', 'error');
+                showNotification('Errore nella fermata del server', 'error');
             }
         }
 
         function refreshStats() {
             loadSystemStats();
             loadActiveServers();
-            loadAllServers();
-            showNotification('Statistics refreshed', 'success');
+            showNotification('Statistiche aggiornate', 'success');
         }
 
-        // Initialize
+        // Inizializzazione
         document.addEventListener('DOMContentLoaded', function() {
             loadSystemStats();
             loadActiveServers();
             loadAllServers();
-            
-            // Version check
+            // Version check (initial + every 5 minutes)
             async function checkUpdateBanner() {
                 try {
                     const info = await apiCall('/api/version');
@@ -526,16 +409,13 @@
                     const cur = document.getElementById('currentVersionText');
                     const latest = document.getElementById('latestVersionText');
                     const link = document.getElementById('updateLink');
-                    
                     if (info && info.success && info.update_available) {
                         if (cur) cur.textContent = info.version || '-';
                         if (latest) latest.textContent = info.latest || '-';
                         if (link && info.update_url) link.href = info.update_url;
                         banner.style.display = 'block';
-                        
                         const dismiss = document.getElementById('dismissUpdate');
                         if (dismiss) dismiss.onclick = () => { banner.style.display = 'none'; };
-                        
                         const updateBtn = document.getElementById('updateNowBtn');
                         if (updateBtn && !updateBtn._bound) {
                             let running = false;
@@ -544,17 +424,17 @@
                                 running = true;
                                 const prevHtml = updateBtn.innerHTML;
                                 updateBtn.disabled = true;
-                                updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+                                updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aggiornamento in corso...';
                                 try {
                                     const res = await fetch('/api/system/update', { method: 'POST' });
                                     const data = await res.json();
                                     if (res.ok && data.success) {
-                                        showNotification('Update completed. Please restart the app.', 'success');
+                                        showNotification('Aggiornamento completato. Riavvia l\'app.', 'success');
                                     } else {
-                                        showNotification(data.message || 'Update error', 'error');
+                                        showNotification(data.message || 'Errore aggiornamento', 'error');
                                     }
                                 } catch (e) {
-                                    showNotification('Update error: ' + (e?.message || e), 'error');
+                                    showNotification('Errore aggiornamento: ' + (e?.message || e), 'error');
                                 } finally {
                                     updateBtn.disabled = false;
                                     updateBtn.innerHTML = prevHtml;
@@ -571,15 +451,16 @@
                 }
             }
 
+            // run once and then every 5 minutes (300000 ms)
             checkUpdateBanner();
             setInterval(checkUpdateBanner, 300000);
             
-            // Auto-refresh every 5 seconds
+            // Aggiorna ogni 2 secondi
             setInterval(() => {
                 loadSystemStats();
                 loadActiveServers();
                 loadAllServers();
-            }, 5000);
+            }, 2000);
         });
     </script>
 </body>
