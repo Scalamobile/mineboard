@@ -4,82 +4,149 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MineBoard - Login</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-lock"></i> Accesso MineBoard</h1>
-            <p>Effettua il login per continuare</p>
-            <div class="theme-switcher">
-                <input type="checkbox" id="theme-toggle">
-                <label for="theme-toggle">
-                    <i class="fas fa-moon"></i>
-                    <i class="fas fa-sun"></i>
-                </label>
+            <div class="header-content">
+                <div class="header-title">
+                    <div>
+                        <h1><i class="fas fa-shield-alt"></i> MineBoard Login</h1>
+                        <p>Sign in to access your Minecraft server dashboard</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="theme-switcher">
+                        <input type="checkbox" id="theme-toggle">
+                        <label for="theme-toggle">
+                            <i class="fas fa-moon"></i>
+                            <i class="fas fa-sun"></i>
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="card" style="max-width: 520px; margin: 0 auto;">
-            {% if info_message %}
-            <div class="card" style="background: #f8f9fa; margin-bottom: 15px;">
-                <div style="color: #666;">
-                    {{ info_message }}
-                </div>
-            </div>
-            {% endif %}
-
-            <p style="color: #666; margin-bottom: 10px;">
-                If this is your first login, click <strong>Forgot password</strong> and login with the given password in the console.
-            </p>
-
-            {% if error %}
-            <div class="notification error show" style="position: relative; transform: none; margin-bottom: 10px;">{{ error }}</div>
-            {% endif %}
-            {% if success %}
-            <!-- Modal popup for success -->
-            <div id="otpModal" class="modal" style="display: block;">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2><i class="fas fa-key"></i> Password Temporanea Generata</h2>
-                        <span class="close" id="otpCloseBtn">&times;</span>
-                    </div>
-                    <div class="modal-body">
-                        <p>La password temporanea è stata generata con successo.</p>
-                        <p>Controlla la <strong>console del server</strong> per visualizzarla.</p>
-                        <ul style="margin-top:10px; padding-left: 20px; color:#666;">
-                            <li>Username: <code>admin</code></li>
-                            <li>Validità: 1 ora</li>
-                            <li>Dopo l'accesso, vai su <strong>Impostazioni &gt; Gestione Utenti</strong> per impostare la tua password.</li>
-                        </ul>
-                        <div style="margin-top: 15px; text-align: right;">
-                            <button class="btn btn-primary" id="otpOkBtn"><i class="fas fa-check"></i> Ok</button>
+        <div class="flex justify-center">
+            <div class="card" style="max-width: 480px; width: 100%;">
+                {% if info_message %}
+                <div class="card mb-4 bg-primary-50 border-primary-200" style="border-color: var(--primary-200);">
+                    <div class="flex items-center gap-3 p-4">
+                        <div class="flex items-center justify-center w-10 h-10 bg-primary-100 rounded-lg">
+                            <i class="fas fa-info-circle text-primary-600"></i>
+                        </div>
+                        <div class="text-primary-700">
+                            {{ info_message }}
                         </div>
                     </div>
                 </div>
-            </div>
-            {% endif %}
+                {% endif %}
 
-            <form method="post" action="{{ url_for('login', next=request.args.get('next')) }}">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" value="admin" required>
+                <div class="mb-6 bg-tertiary rounded-xl p-4 border border-primary">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="flex items-center justify-center w-8 h-8 bg-info-100 rounded-lg">
+                            <i class="fas fa-info-circle text-info-600"></i>
+                        </div>
+                        <span class="font-semibold">First Time Login</span>
+                    </div>
+                    <p class="text-secondary text-sm">
+                        If this is your first login, click <strong>"Forgot password"</strong> and use the temporary password shown in the console.
+                    </p>
                 </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required>
+
+                {% if error %}
+                <div class="notification error show" style="position: relative; transform: none; margin-bottom: 20px;">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>{{ error }}</span>
+                    </div>
                 </div>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <button class="btn btn-primary" type="submit">
-                        <i class="fas fa-right-to-bracket"></i> Login
-                    </button>
-                    <button class="btn btn-secondary" formaction="{{ url_for('forgot_password') }}" formmethod="post" formnovalidate type="submit">
-                        <i class="fas fa-key"></i> Forgot password
-                    </button>
+                {% endif %}
+
+                {% if success %}
+                <div id="otpModal" class="modal" style="display: block;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2><i class="fas fa-key"></i> Temporary Password Generated</h2>
+                            <button class="close" id="otpCloseBtn">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-6">
+                                <div class="flex items-center gap-4 mb-4">
+                                    <div class="flex items-center justify-center w-12 h-12 bg-success-100 rounded-xl">
+                                        <i class="fas fa-check-circle text-success-600 text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-lg">Password generated successfully!</div>
+                                        <div class="text-secondary">Check the server console to view your temporary password.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-tertiary rounded-xl p-4 border border-primary">
+                                <div class="mb-4">
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <i class="fas fa-user text-sm text-primary-500"></i>
+                                        <span class="font-medium">Username:</span>
+                                        <code class="bg-primary-100 px-2 py-1 rounded text-primary-700 font-mono">admin</code>
+                                    </div>
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <i class="fas fa-clock text-sm text-warning-500"></i>
+                                        <span class="font-medium">Valid for:</span>
+                                        <span class="text-secondary">1 hour</span>
+                                    </div>
+                                </div>
+                                <div class="text-sm text-secondary bg-secondary rounded-lg p-3">
+                                    After logging in, go to <strong>Settings > User Management</strong> to set your permanent password.
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-end gap-3 mt-6">
+                                <button class="btn btn-primary" id="otpOkBtn">
+                                    <i class="fas fa-check"></i> Got it
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </form>
+                {% endif %}
+
+                <form method="post" action="{{ url_for('login', next=request.args.get('next')) }}" class="space-y-6">
+                    <div class="form-group">
+                        <label for="username" class="flex items-center gap-2">
+                            <i class="fas fa-user text-primary-500"></i> Username
+                        </label>
+                        <input type="text" id="username" name="username" value="admin" required class="form-control form-control-lg">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password" class="flex items-center gap-2">
+                            <i class="fas fa-lock text-primary-500"></i> Password
+                        </label>
+                        <input type="password" id="password" name="password" required class="form-control form-control-lg">
+                    </div>
+                    
+                    <div class="flex gap-3 flex-wrap">
+                        <button class="btn btn-primary btn-lg flex-1" type="submit">
+                            <i class="fas fa-sign-in-alt"></i> Sign In
+                        </button>
+                        <button class="btn btn-secondary" formaction="{{ url_for('forgot_password') }}" formmethod="post" formnovalidate type="submit">
+                            <i class="fas fa-key"></i> Forgot Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-12 text-tertiary text-sm">
+            <div class="flex items-center justify-center gap-2 mb-2">
+                <i class="fas fa-cube text-primary-500"></i>
+                <span class="font-medium">MineBoard Dashboard</span>
+            </div>
+            <p>&copy; 2024 - Secure Minecraft Server Management</p>
         </div>
     </div>
 
@@ -91,9 +158,14 @@
             if (modal) {
                 const closeBtn = document.getElementById('otpCloseBtn');
                 const okBtn = document.getElementById('otpOkBtn');
-                function closeModal() { modal.style.display = 'none'; }
+                
+                function closeModal() { 
+                    modal.style.display = 'none'; 
+                }
+                
                 closeBtn && closeBtn.addEventListener('click', closeModal);
                 okBtn && okBtn.addEventListener('click', closeModal);
+                
                 window.addEventListener('click', function(e) {
                     if (e.target === modal) closeModal();
                 });
