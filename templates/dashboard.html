@@ -12,22 +12,24 @@
         <!-- Update Banner -->
         <div id="updateBanner" class="update-banner" style="display:none;">
             <div class="update-banner-content">
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-download text-lg"></i>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center justify-center w-12 h-12 bg-white bg-opacity-20 rounded-xl">
+                        <i class="fas fa-download text-xl"></i>
+                    </div>
                     <div class="update-banner-text">
-                        <div class="font-semibold">Nuova versione disponibile: <span id="latestVersionText"></span></div>
-                        <div class="text-sm text-tertiary">Versione installata: <span id="currentVersionText"></span></div>
+                        <div class="font-semibold text-lg">New version available: <span id="latestVersionText"></span></div>
+                        <div class="text-sm opacity-90">Current version: <span id="currentVersionText"></span></div>
                     </div>
                 </div>
                 <div class="update-banner-actions">
-                    <a id="updateLink" class="btn btn-warning" href="#" target="_blank" rel="noopener noreferrer">
-                        <i class="fas fa-external-link-alt"></i> Scarica
+                    <a id="updateLink" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-external-link-alt"></i> Download
                     </a>
                     <button id="updateNowBtn" class="btn btn-success">
-                        <i class="fas fa-bolt"></i> Aggiorna
+                        <i class="fas fa-bolt"></i> Update Now
                     </button>
                     <button id="dismissUpdate" class="btn btn-ghost">
-                        <i class="fas fa-times"></i> Nascondi
+                        <i class="fas fa-times"></i> Dismiss
                     </button>
                 </div>
             </div>
@@ -51,7 +53,7 @@
                         </label>
                     </div>
                     {% if permissions.settings_access %}
-                    <a href="/settings/users" class="btn btn-ghost" title="Impostazioni">
+                    <a href="/settings/users" class="btn btn-ghost" title="Settings">
                         <i class="fas fa-cog"></i>
                     </a>
                     {% endif %}
@@ -79,14 +81,14 @@
                         <div class="progress-fill" style="width: 0%"></div>
                     </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card" style="background: var(--gradient-success);">
                     <div class="stat-value">--</div>
                     <div class="stat-label">Memory Usage</div>
                     <div class="progress-bar">
                         <div class="progress-fill" style="width: 0%"></div>
                     </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card" style="background: var(--gradient-warning);">
                     <div class="stat-value">--</div>
                     <div class="stat-label">Disk Usage</div>
                     <div class="progress-bar">
@@ -105,11 +107,11 @@
                 </div>
             </div>
             
-            <div class="flex gap-3" style="flex-wrap: wrap;">
-                <a href="/servers" class="btn btn-primary">
+            <div class="flex gap-3 flex-wrap">
+                <a href="/servers" class="btn btn-primary btn-lg">
                     <i class="fas fa-server"></i> Manage Servers
                 </a>
-                <a href="/servers/new" class="btn btn-success">
+                <a href="/servers/new" class="btn btn-success btn-lg">
                     <i class="fas fa-plus"></i> Create Server
                 </a>
                 {% if permissions.settings_access %}
@@ -130,6 +132,11 @@
                     <i class="fas fa-play-circle"></i>
                     <h2>Active Servers</h2>
                 </div>
+                <div class="flex items-center gap-2">
+                    <div class="status-badge status-running">
+                        <span id="activeServerCount">0</span> Running
+                    </div>
+                </div>
             </div>
             
             <div id="activeServers">
@@ -147,9 +154,14 @@
                     <i class="fas fa-list"></i>
                     <h2>All Servers</h2>
                 </div>
-                <a href="/servers" class="btn btn-secondary">
-                    <i class="fas fa-external-link-alt"></i> View All
-                </a>
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2 text-sm text-secondary">
+                        <span id="totalServerCount">0</span> Total Servers
+                    </div>
+                    <a href="/servers" class="btn btn-secondary">
+                        <i class="fas fa-external-link-alt"></i> View All
+                    </a>
+                </div>
             </div>
 
             <div id="allServers">
@@ -169,35 +181,73 @@
                 </div>
             </div>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
-                <div>
-                    <h3 class="flex items-center gap-2 mb-4 font-semibold text-lg">
-                        <i class="fas fa-server text-primary-500"></i> Web Server
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-tertiary rounded-xl p-5 border border-primary">
+                    <h3 class="flex items-center gap-3 mb-4 font-semibold text-lg">
+                        <div class="flex items-center justify-center w-10 h-10 bg-primary-100 rounded-lg">
+                            <i class="fas fa-server text-primary-600"></i>
+                        </div>
+                        Web Server
                     </h3>
-                    <div class="text-secondary">
-                        <p>MineBoard Dashboard</p>
-                        <p>Port: 8999</p>
-                        <p>Python Flask</p>
+                    <div class="text-secondary space-y-2">
+                        <p class="flex items-center gap-2">
+                            <i class="fas fa-circle text-xs text-success-500"></i>
+                            MineBoard Dashboard
+                        </p>
+                        <p class="flex items-center gap-2">
+                            <i class="fas fa-circle text-xs text-primary-500"></i>
+                            Port: 8999
+                        </p>
+                        <p class="flex items-center gap-2">
+                            <i class="fas fa-circle text-xs text-warning-500"></i>
+                            Python Flask
+                        </p>
                     </div>
                 </div>
-                <div>
-                    <h3 class="flex items-center gap-2 mb-4 font-semibold text-lg">
-                        <i class="fas fa-folder text-primary-500"></i> Directories
+                
+                <div class="bg-tertiary rounded-xl p-5 border border-primary">
+                    <h3 class="flex items-center gap-3 mb-4 font-semibold text-lg">
+                        <div class="flex items-center justify-center w-10 h-10 bg-success-100 rounded-lg">
+                            <i class="fas fa-folder text-success-600"></i>
+                        </div>
+                        Directories
                     </h3>
-                    <div class="text-secondary">
-                        <p>Servers: ./servers/</p>
-                        <p>Logs: ./logs/</p>
-                        <p>Uploads: ./uploads/</p>
+                    <div class="text-secondary space-y-2">
+                        <p class="flex items-center gap-2">
+                            <i class="fas fa-circle text-xs text-primary-500"></i>
+                            Servers: ./servers/
+                        </p>
+                        <p class="flex items-center gap-2">
+                            <i class="fas fa-circle text-xs text-warning-500"></i>
+                            Logs: ./logs/
+                        </p>
+                        <p class="flex items-center gap-2">
+                            <i class="fas fa-circle text-xs text-info-500"></i>
+                            Uploads: ./uploads/
+                        </p>
                     </div>
                 </div>
-                <div>
-                    <h3 class="flex items-center gap-2 mb-4 font-semibold text-lg">
-                        <i class="fas fa-cog text-primary-500"></i> Features
+                
+                <div class="bg-tertiary rounded-xl p-5 border border-primary">
+                    <h3 class="flex items-center gap-3 mb-4 font-semibold text-lg">
+                        <div class="flex items-center justify-center w-10 h-10 bg-warning-100 rounded-lg">
+                            <i class="fas fa-cog text-warning-600"></i>
+                        </div>
+                        Features
                     </h3>
-                    <div class="text-secondary">
-                        <p>Multi-server management</p>
-                        <p>Real-time console</p>
-                        <p>File management</p>
+                    <div class="text-secondary space-y-2">
+                        <p class="flex items-center gap-2">
+                            <i class="fas fa-check text-xs text-success-500"></i>
+                            Multi-server management
+                        </p>
+                        <p class="flex items-center gap-2">
+                            <i class="fas fa-check text-xs text-success-500"></i>
+                            Real-time console
+                        </p>
+                        <p class="flex items-center gap-2">
+                            <i class="fas fa-check text-xs text-success-500"></i>
+                            File management
+                        </p>
                     </div>
                 </div>
             </div>
@@ -226,6 +276,11 @@
             try {
                 const data = await apiCall('/api/servers');
                 const container = document.getElementById('allServers');
+                const totalCount = document.getElementById('totalServerCount');
+
+                if (totalCount) {
+                    totalCount.textContent = data ? data.length : 0;
+                }
 
                 if (!data || data.length === 0) {
                     container.innerHTML = `
@@ -233,7 +288,7 @@
                             <i class="fas fa-server"></i>
                             <h3>No servers found</h3>
                             <p>Create your first Minecraft server to get started</p>
-                            <a href="/servers/new" class="btn btn-success">
+                            <a href="/servers/new" class="btn btn-success btn-lg">
                                 <i class="fas fa-plus"></i> Create First Server
                             </a>
                         </div>
@@ -284,6 +339,9 @@
                         <i class="fas fa-exclamation-triangle" style="color: var(--danger-500);"></i>
                         <h3>Error loading servers</h3>
                         <p>Please try refreshing the page</p>
+                        <button class="btn btn-primary" onclick="loadAllServers()">
+                            <i class="fas fa-refresh"></i> Retry
+                        </button>
                     </div>
                 `;
             }
@@ -364,6 +422,11 @@
             try {
                 const data = await apiCall('/api/servers');
                 const activeServers = data.filter(server => server.status === 'running');
+                const activeCount = document.getElementById('activeServerCount');
+                
+                if (activeCount) {
+                    activeCount.textContent = activeServers.length;
+                }
                 
                 const container = document.getElementById('activeServers');
                 
@@ -373,7 +436,7 @@
                             <i class="fas fa-server"></i>
                             <h3>No active servers</h3>
                             <p>Start a server to see it here</p>
-                            <a href="/servers/new" class="btn btn-primary">
+                            <a href="/servers/new" class="btn btn-primary btn-lg">
                                 <i class="fas fa-plus"></i> Create Server
                             </a>
                         </div>
@@ -389,6 +452,7 @@
                                             <div class="server-meta">
                                                 <span><i class="fas fa-plug"></i> Port: ${server.port}</span>
                                                 <span><i class="fas fa-memory"></i> RAM: ${server.max_memory}</span>
+                                                <span><i class="fas fa-clock"></i> Uptime: <span id="uptime-${server.name}">--</span></span>
                                             </div>
                                         </div>
                                         <div class="status-badge status-running">Running</div>
@@ -412,6 +476,9 @@
                         <i class="fas fa-exclamation-triangle" style="color: var(--danger-500);"></i>
                         <h3>Error loading active servers</h3>
                         <p>Please try refreshing the page</p>
+                        <button class="btn btn-primary" onclick="loadActiveServers()">
+                            <i class="fas fa-refresh"></i> Retry
+                        </button>
                     </div>
                 `;
             }
