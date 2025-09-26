@@ -47,7 +47,7 @@ USERS_FILE = os.path.join(os.getcwd(), 'users.json')
 
 # Versioning SE MODIFICHI QUESTA SEZIONE NIENTE PIÙ BISCOTTI :<
 APP_VERSION = os.environ.get('MINEBOARD_VERSION', '1.0.3')
-UPDATE_CHECK_URL = os.environ.get('MINEBOARD_UPDATE_URL', 'https://pastebin.com/raw/whfbJD7K')
+UPDATE_CHECK_URL = os.environ.get('MINEBOARD_UPDATE_URL', 'https://gist.githubusercontent.com/Scalamobile/2f904bd9b046f14caa0ad170a67439bc/raw/6a42ba9ae71468159257e4e1bcec78a7d7158bee/gistfile1.txt')
 UPDATE_PAGE_URL = os.environ.get('MINEBOARD_UPDATE_PAGE', 'https://github.com/Scalamobile/mineboard')
 
 # Crea directory necessarie
