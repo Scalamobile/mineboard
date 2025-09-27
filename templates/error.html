@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MineBoard - Error {{ error_code }}</title>
+    <title>MineBoard - Errore {{ error_code }}</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
@@ -11,150 +11,62 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="header-content">
-                <div class="header-title">
-                    <div>
-                        <h1><i class="fas fa-exclamation-triangle"></i> Error {{ error_code }}</h1>
-                        <p>{{ error_message }}</p>
-                    </div>
-                </div>
-                <div class="header-actions">
-                    <div class="theme-switcher">
-                        <input type="checkbox" id="theme-toggle">
-                        <label for="theme-toggle">
-                            <i class="fas fa-moon"></i>
-                            <i class="fas fa-sun"></i>
-                        </label>
-                    </div>
-                    <a href="/settings/users" class="btn btn-ghost" title="Settings">
-                        <i class="fas fa-cog"></i>
-                    </a>
-                </div>
+            <h1><i class="fas fa-exclamation-triangle"></i> Errore {{ error_code }}</h1>
+            <p>{{ error_message }}</p>
+            <div class="theme-switcher">
+                <input type="checkbox" id="theme-toggle">
+                <label for="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                    <i class="fas fa-sun"></i>
+                </label>
             </div>
+            <a href="/settings/users" class="btn btn-secondary" title="Impostazioni" style="margin-left: 10px; padding: 10px; border-radius: 50%;">
+                <i class="fas fa-gear"></i>
+            </a>
         </div>
 
-        <div class="flex justify-center">
-            <div class="card text-center" style="max-width: 600px; width: 100%;">
-                <div class="mb-8">
-                    <div class="flex items-center justify-center w-24 h-24 bg-danger-100 rounded-2xl mx-auto mb-6">
-                        <i class="fas fa-exclamation-triangle text-danger-600 text-4xl"></i>
-                    </div>
-                    
-                    <h2 class="text-2xl font-bold mb-4">Oops! Something went wrong</h2>
-                    
-                    <p class="text-secondary text-lg mb-8">
-                        {{ error_message }}
-                    </p>
-                    
-                    <div class="flex gap-4 justify-center flex-wrap">
-                        <a href="/" class="btn btn-primary btn-lg">
-                            <i class="fas fa-home"></i> Back to Dashboard
-                        </a>
-                        <a href="/servers" class="btn btn-secondary">
-                            <i class="fas fa-server"></i> Server List
-                        </a>
-                        <button class="btn btn-ghost" onclick="history.back()">
-                            <i class="fas fa-arrow-left"></i> Go Back
-                        </button>
-                    </div>
-                </div>
+        <div class="card" style="text-align: center; padding: 60px;">
+            <div style="font-size: 6rem; color: #ff6b6b; margin-bottom: 30px;">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            
+            <h2 style="margin-bottom: 20px;">Oops! Qualcosa è andato storto</h2>
+            
+            <p style="color: #666; margin-bottom: 30px; font-size: 1.1rem;">
+                {{ error_message }}
+            </p>
+            
+            <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-home"></i> Torna alla Dashboard
+                </a>
+                <a href="/servers" class="btn btn-secondary">
+                    <i class="fas fa-server"></i> Lista Server
+                </a>
+                <button class="btn btn-warning" onclick="history.back()">
+                    <i class="fas fa-arrow-left"></i> Indietro
+                </button>
             </div>
         </div>
 
         <div class="card">
             <div class="card-header">
-                <div class="card-title">
-                    <i class="fas fa-info-circle"></i>
-                    <h2>Error Information</h2>
-                </div>
+                <i class="fas fa-info-circle"></i>
+                <h2>Informazioni Errore</h2>
             </div>
             
-            <div class="bg-tertiary rounded-xl p-6 border border-primary">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <div class="flex items-center gap-3 mb-3">
-                            <i class="fas fa-hashtag text-danger-500"></i>
-                            <span class="font-medium">Error Code:</span>
-                        </div>
-                        <div class="text-secondary">{{ error_code }}</div>
-                    </div>
-                    
-                    <div>
-                        <div class="flex items-center gap-3 mb-3">
-                            <i class="fas fa-clock text-warning-500"></i>
-                            <span class="font-medium">Timestamp:</span>
-                        </div>
-                        <div class="text-secondary" id="timestamp"></div>
-                    </div>
-                    
-                    <div class="md:col-span-2">
-                        <div class="flex items-center gap-3 mb-3">
-                            <i class="fas fa-link text-info-500"></i>
-                            <span class="font-medium">URL:</span>
-                        </div>
-                        <div class="text-secondary break-all">{{ request.url }}</div>
-                    </div>
-                    
-                    <div class="md:col-span-2">
-                        <div class="flex items-center gap-3 mb-3">
-                            <i class="fas fa-comment-alt text-primary-500"></i>
-                            <span class="font-medium">Message:</span>
-                        </div>
-                        <div class="text-secondary">{{ error_message }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Help Section -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">
-                    <i class="fas fa-question-circle"></i>
-                    <h2>Need Help?</h2>
-                </div>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-tertiary rounded-xl p-6 border border-primary text-center">
-                    <div class="flex items-center justify-center w-12 h-12 bg-primary-100 rounded-xl mx-auto mb-4">
-                        <i class="fas fa-redo text-primary-600"></i>
-                    </div>
-                    <h3 class="font-semibold mb-2">Try Again</h3>
-                    <p class="text-secondary text-sm mb-4">Sometimes a simple refresh can fix the issue.</p>
-                    <button class="btn btn-primary btn-sm" onclick="location.reload()">
-                        <i class="fas fa-refresh"></i> Refresh Page
-                    </button>
-                </div>
-                
-                <div class="bg-tertiary rounded-xl p-6 border border-primary text-center">
-                    <div class="flex items-center justify-center w-12 h-12 bg-success-100 rounded-xl mx-auto mb-4">
-                        <i class="fas fa-home text-success-600"></i>
-                    </div>
-                    <h3 class="font-semibold mb-2">Go Home</h3>
-                    <p class="text-secondary text-sm mb-4">Return to the main dashboard to continue.</p>
-                    <a href="/" class="btn btn-success btn-sm">
-                        <i class="fas fa-home"></i> Dashboard
-                    </a>
-                </div>
-                
-                <div class="bg-tertiary rounded-xl p-6 border border-primary text-center">
-                    <div class="flex items-center justify-center w-12 h-12 bg-warning-100 rounded-xl mx-auto mb-4">
-                        <i class="fas fa-bug text-warning-600"></i>
-                    </div>
-                    <h3 class="font-semibold mb-2">Report Issue</h3>
-                    <p class="text-secondary text-sm mb-4">If the problem persists, check the console logs.</p>
-                    <button class="btn btn-warning btn-sm" onclick="console.log('Error {{ error_code }}: {{ error_message }}')">
-                        <i class="fas fa-terminal"></i> Log Error
-                    </button>
-                </div>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <p><strong>Codice Errore:</strong> {{ error_code }}</p>
+                <p><strong>Messaggio:</strong> {{ error_message }}</p>
+                <p><strong>Timestamp:</strong> <span id="timestamp"></span></p>
+                <p><strong>URL:</strong> {{ request.url }}</p>
             </div>
         </div>
     </div>
 
     <script src="{{ url_for('static', filename='js/common.js') }}"></script>
     <script>
-        // Set current timestamp
+        // Imposta il timestamp corrente
         document.addEventListener('DOMContentLoaded', function() {
             const timestampElement = document.getElementById('timestamp');
             if (timestampElement) {
