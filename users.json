@@ -1,1 +1,0 @@
-{"admin": {"password_hash": null, "role": "admin", "permissions": {"servers_control": true, "files_access": true, "players_access": true, "stats_view": true, "settings_access": true, "config_access": true, "backup_access": true, "server_stats_access": true}}}
