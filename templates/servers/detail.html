@@ -508,10 +508,13 @@
                 </button>
             </div>
             <div class="modal-body" style="height: calc(100% - 120px); display: flex; flex-direction: column;">
-                <div style="margin-bottom: 15px;">
-                    <strong>File:</strong> <span id="editingFileName"></span>
+                <div style="margin-bottom: 15px; display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                    <div><strong>File:</strong> <span id="editingFileName"></span></div>
+                    <div style="font-size:12px; color:#666;">
+                        <span style="margin-right:12px;">Scorciatoie: <code>Ctrl/Cmd + S</code> Salva, <code>Ctrl/Cmd + F</code> Cerca</span>
+                    </div>
                 </div>
-                <textarea id="fileEditor" style="flex: 1; font-family: 'Courier New', monospace; font-size: 14px; border: 1px solid #ddd; border-radius: 5px; padding: 10px; resize: none;"></textarea>
+                <div id="monacoEditor" style="flex: 1; border: 1px solid #ddd; border-radius: 8px;"></div>
             </div>
             <div style="display: flex; gap: 15px; padding: 20px; border-top: 1px solid #eee;">
                 <button class="btn btn-success" onclick="saveFile()">
@@ -581,6 +584,8 @@
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Monaco Editor AMD loader -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
     
     <!-- Statistics Styles -->
     <style>
@@ -1156,6 +1161,76 @@
         let currentPath = '';
         let editingFile = null;
         let navigationHistory = [];
+        // Monaco editor instance
+        let monacoEditor = null;
+        let monacoReady = false;
+
+        // Configure AMD loader for Monaco
+        if (window.require) {
+            window.require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
+            window.require(['vs/editor/editor.main'], function() {
+                monacoReady = true;
+                // If modal is already visible, ensure editor is created
+                const container = document.getElementById('monacoEditor');
+                if (container && container.offsetParent !== null && !monacoEditor) {
+                    createMonaco('');
+                }
+            });
+        }
+
+        function getLanguageFromFilename(filename) {
+            const ext = (filename.split('.').pop() || '').toLowerCase();
+            const map = {
+                'yml': 'yaml', 'yaml': 'yaml', 'json': 'json', 'properties': 'ini', 'ini': 'ini', 'txt': 'plaintext',
+                'js': 'javascript', 'ts': 'typescript', 'css': 'css', 'html': 'html', 'md': 'markdown',
+                'java': 'java', 'py': 'python', 'sh': 'shell', 'bat': 'bat', 'xml': 'xml'
+            };
+            return map[ext] || 'plaintext';
+        }
+
+        function applyMonacoTheme() {
+            if (!window.monaco) return;
+            const isDark = document.body.classList.contains('dark-mode');
+            monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs');
+        }
+
+        function createMonaco(content, filename = '') {
+            const container = document.getElementById('monacoEditor');
+            if (!container || !window.monaco) return;
+            const lang = getLanguageFromFilename(filename);
+            monacoEditor = monaco.editor.create(container, {
+                value: content || '',
+                language: lang,
+                automaticLayout: true,
+                minimap: { enabled: true },
+                fontLigatures: true,
+                fontSize: 14,
+                scrollBeyondLastLine: false,
+                wordWrap: 'on',
+                theme: document.body.classList.contains('dark-mode') ? 'vs-dark' : 'vs'
+            });
+            // Ctrl/Cmd + S to save
+            monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+                saveFile();
+            });
+            // Ctrl/Cmd + Shift + I -> Format Document (if supported)
+            monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyI, async () => {
+                try { await monacoEditor.getAction('editor.action.formatDocument').run(); } catch (e) {}
+            });
+            // Alt + Z -> Toggle Word Wrap
+            monacoEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyZ, () => {
+                const opts = monacoEditor.getRawOptions();
+                monacoEditor.updateOptions({ wordWrap: opts.wordWrap === 'on' ? 'off' : 'on' });
+            });
+            // Layout on resize
+            window.addEventListener('resize', () => monacoEditor && monacoEditor.layout());
+        }
+
+        // Observe theme changes to sync Monaco theme
+        try {
+            const themeObserver = new MutationObserver(() => applyMonacoTheme());
+            themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        } catch (e) {}
 
         // Files
         async function loadFiles(path = '', addToHistory = true) {
@@ -1294,8 +1369,28 @@
                 if (data.success) {
                     editingFile = filePath;
                     document.getElementById('editingFileName').textContent = filePath;
-                    document.getElementById('fileEditor').value = data.content;
-                    document.getElementById('fileEditorModal').style.display = 'flex';
+                    const modal = document.getElementById('fileEditorModal');
+                    modal.style.display = 'flex';
+                    // Initialize or update Monaco editor
+                    const content = data.content || '';
+                    if (monacoReady && window.monaco) {
+                        // If editor exists, update its model and language
+                        if (monacoEditor) {
+                            const model = monacoEditor.getModel();
+                            if (model) model.setValue(content);
+                            const newLang = getLanguageFromFilename(filePath);
+                            monaco.editor.setModelLanguage(monacoEditor.getModel(), newLang);
+                        } else {
+                            createMonaco(content, filePath);
+                        }
+                        // ensure layout after modal visible
+                        setTimeout(() => { monacoEditor && monacoEditor.layout(); }, 0);
+                        applyMonacoTheme();
+                    } else {
+                        // Fallback minimal: if Monaco not ready yet, create when loader finishes
+                        const container = document.getElementById('monacoEditor');
+                        if (container) container.textContent = content;
+                    }
                 } else {
                     showNotification(data.message, 'error');
                 }
@@ -1308,7 +1403,7 @@
             if (!editingFile) return;
 
             try {
-                const content = document.getElementById('fileEditor').value;
+                const content = (monacoEditor && monacoEditor.getValue) ? monacoEditor.getValue() : (document.getElementById('monacoEditor')?.textContent || '');
                 const data = await apiCall(`/api/files/${serverName}/${editingFile}`, {
                     method: 'PUT',
                     body: JSON.stringify({ content: content })
@@ -1327,6 +1422,10 @@
         function closeFileEditor() {
             document.getElementById('fileEditorModal').style.display = 'none';
             editingFile = null;
+            if (monacoEditor) {
+                try { monacoEditor.dispose(); } catch (e) {}
+                monacoEditor = null;
+            }
         }
 
         async function downloadFile(filePath) {
