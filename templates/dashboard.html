@@ -107,20 +107,7 @@
             </div>
         </div>
 
-        <!-- Active Servers -->
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-play-circle"></i>
-                <h2>Active Servers</h2>
-            </div>
-            
-            <div id="activeServers">
-                <div style="text-align: center; color: #666; padding: 40px;">
-                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 15px;"></i>
-                    <p>Loading servers...</p>
-                </div>
-            </div>
-        </div>
+        <!-- Sezione 'Active Servers' rimossa: manteniamo solo 'Tutti i Server' -->
 
         <!-- All Servers -->
         <div class="card">
@@ -257,7 +244,6 @@
                 const data = await apiCall(`/api/servers/${serverName}/start`, { method: 'POST' });
                 showNotification(data.message, data.success ? 'success' : 'error');
                 if (data.success) {
-                    loadActiveServers();
                     loadAllServers();
                 }
             } catch (e) {
@@ -271,7 +257,6 @@
                 const data = await apiCall(`/api/servers/${serverName}/stop`, { method: 'POST' });
                 showNotification(data.message, data.success ? 'success' : 'error');
                 if (data.success) {
-                    loadActiveServers();
                     loadAllServers();
                 }
             } catch (e) {
@@ -289,7 +274,6 @@
                         try {
                             const startData = await apiCall(`/api/servers/${serverName}/start`, { method: 'POST' });
                             showNotification(startData.message, startData.success ? 'success' : 'error');
-                            loadActiveServers();
                             loadAllServers();
                         } catch (e) {
                             showNotification('Errore nel riavvio del server', 'error');
@@ -324,82 +308,16 @@
             }
         }
 
-        // Carica server attivi
-        async function loadActiveServers() {
-            try {
-                const data = await apiCall('/api/servers');
-                const activeServers = data.filter(server => server.status === 'running');
-                
-                const container = document.getElementById('activeServers');
-                
-                if (activeServers.length === 0) {
-                    container.innerHTML = `
-                        <div style="text-align: center; color: #666; padding: 40px;">
-                            <i class="fas fa-server" style="font-size: 2rem; margin-bottom: 15px; opacity: 0.3;"></i>
-                            <p>Nessun server attivo</p>
-                            <a href="/servers/new" class="btn btn-primary" style="margin-top: 15px;">
-                                <i class="fas fa-plus"></i> Crea Primo Server
-                            </a>
-                        </div>
-                    `;
-                } else {
-                    container.innerHTML = activeServers.map(server => `
-                        <div class="server-item">
-                            <div class="server-info">
-                                <div class="server-name">${server.name}</div>
-                                <div class="server-status status-running">In Esecuzione</div>
-                            </div>
-                            <div style="display: flex; gap: 10px;">
-                                <a href="/servers/${server.name}" class="btn btn-primary">
-                                    <i class="fas fa-cog"></i> Gestisci
-                                </a>
-                                <button class="btn btn-danger" onclick="stopServer('${server.name}')">
-                                    <i class="fas fa-stop"></i> Ferma
-                                </button>
-                            </div>
-                        </div>
-                    `).join('');
-                }
-            } catch (error) {
-                document.getElementById('activeServers').innerHTML = `
-                    <div style="text-align: center; color: #ff6b6b; padding: 40px;">
-                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 15px;"></i>
-                        <p>Errore nel caricamento dei server</p>
-                    </div>
-                `;
-            }
-        }
-
-        async function stopServer(serverName) {
-            if (!confirm(`Sei sicuro di voler fermare il server "${serverName}"?`)) {
-                return;
-            }
-
-            try {
-                const data = await apiCall(`/api/servers/${serverName}/stop`, {
-                    method: 'POST'
-                });
-                
-                showNotification(data.message, data.success ? 'success' : 'error');
-                
-                if (data.success) {
-                    loadActiveServers();
-                }
-            } catch (error) {
-                showNotification('Errore nella fermata del server', 'error');
-            }
-        }
+        // Sezione 'Active Servers' e funzioni correlate rimosse
 
         function refreshStats() {
             loadSystemStats();
-            loadActiveServers();
             showNotification('Statistiche aggiornate', 'success');
         }
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', function() {
             loadSystemStats();
-            loadActiveServers();
             loadAllServers();
             // Version check (initial + every 5 minutes)
             async function checkUpdateBanner() {
@@ -458,7 +376,6 @@
             // Aggiorna ogni 2 secondi
             setInterval(() => {
                 loadSystemStats();
-                loadActiveServers();
                 loadAllServers();
             }, 2000);
         });

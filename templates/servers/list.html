@@ -57,28 +57,7 @@
             </div>
         </div>
 
-        <!-- Statistiche Server -->
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-chart-bar"></i>
-                <h2>Statistiche Server</h2>
-            </div>
-            
-            <div id="serverStats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                <div class="stat-card">
-                    <div class="stat-value" id="totalServers">--</div>
-                    <div class="stat-label">Server Totali</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="runningServers">--</div>
-                    <div class="stat-label">Server Attivi</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="stoppedServers">--</div>
-                    <div class="stat-label">Server Fermati</div>
-                </div>
-            </div>
-        </div>
+        <!-- Statistiche rimosse: mantenuta solo la lista completa dei server -->
     </div>
 
     <!-- Notifiche -->
@@ -129,7 +108,6 @@
                 const data = await apiCall('/api/servers');
                 servers = data;
                 updateServersList();
-                updateServerStats();
             } catch (error) {
                 document.getElementById('serversList').innerHTML = `
                     <div style="text-align: center; color: #ff6b6b; padding: 40px;">
@@ -198,15 +176,7 @@
             `).join('');
         }
 
-        function updateServerStats() {
-            const total = servers.length;
-            const running = servers.filter(s => s.status === 'running').length;
-            const stopped = total - running;
-
-            document.getElementById('totalServers').textContent = total;
-            document.getElementById('runningServers').textContent = running;
-            document.getElementById('stoppedServers').textContent = stopped;
-        }
+        // Statistiche rimosse
 
         async function startServer(serverName) {
             try {
