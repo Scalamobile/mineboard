@@ -1541,3 +1541,134 @@ body.dark-mode .permissions-grid label:hover {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Server Detail Page Styles */
+/* Tabs (alias of .nav-tabs/.nav-tab to keep consistency with dashboard) */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-primary);
+  margin-bottom: var(--space-6);
+  gap: var(--space-1);
+  background: var(--bg-tertiary);
+  padding: var(--space-1);
+  border-radius: var(--radius-xl);
+}
+
+.tab {
+  padding: var(--space-3) var(--space-5);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-normal);
+  font-size: 0.875rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.tab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.tab:hover {
+  color: var(--text-primary);
+}
+
+.tab:hover::before {
+  opacity: 0.1;
+}
+
+.tab.active {
+  color: var(--text-inverse);
+  background: var(--gradient-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab.active::before {
+  opacity: 0;
+}
+
+/* Console input bar for sending commands */
+.console-input {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-primary);
+}
+
+.console-input input[type="text"],
+.console-input input[type="search"],
+.console-input input[type="email"],
+.console-input input[type="password"] {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all var(--transition-normal);
+  font-family: inherit;
+}
+
+.console-input input:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px var(--primary-100);
+  transform: translateY(-1px);
+}
+
+/* File Browser wrappers for detail page */
+.file-browser {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.file-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.file-list {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+/* Additional status variants for detail page */
+.status-stopping {
+  background: var(--warning-50);
+  color: var(--warning-700);
+  border: 1px solid var(--warning-200);
+}
+
+.status-restarting {
+  background: var(--info-50);
+  color: var(--info-700);
+  border: 1px solid var(--info-200);
+}
+
+body.dark-mode .status-stopping {
+  background: var(--warning-900);
+  color: var(--warning-300);
+  border-color: var(--warning-700);
+}
+
+body.dark-mode .status-restarting {
+  background: var(--info-900);
+  color: var(--info-300);
+  border-color: var(--info-700);
+}
