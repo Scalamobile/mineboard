@@ -1,177 +1,176 @@
-// MineBoard - JavaScript Comune
-
-// Funzioni di utilità
-function showNotification(message, type = 'success') {
-    const notification = document.getElementById('notification');
-    if (!notification) return;
-    
-    notification.textContent = message;
-    notification.className = `notification ${type}`;
-    notification.classList.add('show');
-    
-    setTimeout(() => {
-        notification.classList.remove('show');
-    }, 3000);
-}
-
-// Inietta un pannello per impostare il comando di avvio personalizzato nel dettaglio del server
-async function initCustomStartPanel(serverName) {
-    const container = document.querySelector('.container') || document.body;
-
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.style.marginTop = '20px';
-    card.style.maxWidth = '900px';
-    card.innerHTML = `
-        <div class="card-header">
-            <i class="fas fa-terminal"></i>
-            <h2>Avvio Personalizzato</h2>
-        </div>
-        <div style="padding: 15px; text-align: left;">
-            <div class="form-group" style="display:flex; align-items:center; gap:6px;">
-                <input type="checkbox" id="use_custom_start_cb" style="margin:0; width:auto;">
-                <label for="use_custom_start_cb" style="margin:0;">Usa comando personalizzato per avviare il server</label>
-            </div>
-            <div class="form-group">
-                <label for="custom_start_cmd_ta">Comando di Avvio</label>
-                <textarea id="custom_start_cmd_ta" rows="3" placeholder="Esempio: java -Xmx2G -Xms2G -jar server.jar nogui"></textarea>
-                <div style="color:#666; margin-top:6px;">
-                    - Il comando viene eseguito nella cartella del server <code>servers/${serverName}/</code>.
-                    <br>
-                    - Se abilitato, il comando viene lanciato come shell script (shell=true).
-                    <br>
-                    - I log vanno in <code>logs/${serverName}.log</code>.
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MineBoard - Login</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="header-title">
+                    <div>
+                        <h1><i class="fas fa-shield-alt"></i> MineBoard Login</h1>
+                        <p>Sign in to access your Minecraft server dashboard</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="theme-switcher">
+                        <input type="checkbox" id="theme-toggle">
+                        <label for="theme-toggle">
+                            <i class="fas fa-moon"></i>
+                            <i class="fas fa-sun"></i>
+                        </label>
+                    </div>
                 </div>
             </div>
-            <div style="display:flex; gap:8px; justify-content:flex-start; align-items:center;">
-                <button id="save_custom_start_btn" class="btn btn-success" style="margin:0;"><i class="fas fa-save"></i> Salva</button>
+        </div>
+
+        <div class="flex justify-center">
+            <div class="card" style="max-width: 480px; width: 100%;">
+                {% if info_message %}
+                <div class="card mb-4 bg-primary-50 border-primary-200" style="border-color: var(--primary-200);">
+                    <div class="flex items-center gap-3 p-4">
+                        <div class="flex items-center justify-center w-10 h-10 bg-primary-100 rounded-lg">
+                            <i class="fas fa-info-circle text-primary-600"></i>
+                        </div>
+                        <div class="text-primary-700">
+                            {{ info_message }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="mb-6 bg-tertiary rounded-xl p-4 border border-primary">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="flex items-center justify-center w-8 h-8 bg-info-100 rounded-lg">
+                            <i class="fas fa-info-circle text-info-600"></i>
+                        </div>
+                        <span class="font-semibold">First Time Login</span>
+                    </div>
+                    <p class="text-secondary text-sm">
+                        If this is your first login, click <strong>"Forgot password"</strong> and use the temporary password shown in the console.
+                    </p>
+                </div>
+
+                {% if error %}
+                <div class="notification error show" style="position: relative; transform: none; margin-bottom: 20px;">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>{{ error }}</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if success %}
+                <div id="otpModal" class="modal" style="display: block;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2><i class="fas fa-key"></i> Temporary Password Generated</h2>
+                            <button class="close" id="otpCloseBtn">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-6">
+                                <div class="flex items-center gap-4 mb-4">
+                                    <div class="flex items-center justify-center w-12 h-12 bg-success-100 rounded-xl">
+                                        <i class="fas fa-check-circle text-success-600 text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-lg">Password generated successfully!</div>
+                                        <div class="text-secondary">Check the server console to view your temporary password.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-tertiary rounded-xl p-4 border border-primary">
+                                <div class="mb-4">
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <i class="fas fa-user text-sm text-primary-500"></i>
+                                        <span class="font-medium">Username:</span>
+                                        <code class="bg-primary-100 px-2 py-1 rounded text-primary-700 font-mono">admin</code>
+                                    </div>
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <i class="fas fa-clock text-sm text-warning-500"></i>
+                                        <span class="font-medium">Valid for:</span>
+                                        <span class="text-secondary">1 hour</span>
+                                    </div>
+                                </div>
+                                <div class="text-sm text-secondary bg-secondary rounded-lg p-3">
+                                    After logging in, go to <strong>Settings > User Management</strong> to set your permanent password.
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-end gap-3 mt-6">
+                                <button class="btn btn-primary" id="otpOkBtn">
+                                    <i class="fas fa-check"></i> Got it
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="post" action="{{ url_for('login', next=request.args.get('next')) }}" class="space-y-6">
+                    <div class="form-group">
+                        <label for="username" class="flex items-center gap-2">
+                            <i class="fas fa-user text-primary-500"></i> Username
+                        </label>
+                        <input type="text" id="username" name="username" value="admin" required class="form-control form-control-lg">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password" class="flex items-center gap-2">
+                            <i class="fas fa-lock text-primary-500"></i> Password
+                        </label>
+                        <input type="password" id="password" name="password" required class="form-control form-control-lg">
+                    </div>
+                    
+                    <div class="flex gap-3 flex-wrap">
+                        <button class="btn btn-primary btn-lg flex-1" type="submit">
+                            <i class="fas fa-sign-in-alt"></i> Sign In
+                        </button>
+                        <button class="btn btn-secondary" formaction="{{ url_for('forgot_password') }}" formmethod="post" formnovalidate type="submit">
+                            <i class="fas fa-key"></i> Forgot Password
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
-    `;
 
-    container.appendChild(card);
+        <!-- Footer -->
+        <div class="text-center mt-12 text-tertiary text-sm">
+            <div class="flex items-center justify-center gap-2 mb-2">
+                <i class="fas fa-cube text-primary-500"></i>
+                <span class="font-medium">MineBoard Dashboard</span>
+            </div>
+            <p>&copy; 2024 - Secure Minecraft Server Management</p>
+        </div>
+    </div>
 
-    // Carica configurazione attuale
-    try {
-        const data = await apiCall(`/api/servers/${encodeURIComponent(serverName)}/config`);
-        const cfg = (data && data.config) || {};
-        document.getElementById('use_custom_start_cb').checked = !!cfg.use_custom_start;
-        document.getElementById('custom_start_cmd_ta').value = cfg.custom_start_cmd || '';
-    } catch (e) {
-        // già notificato
-    }
-
-    // Salvataggio
-    const saveBtn = document.getElementById('save_custom_start_btn');
-    saveBtn.addEventListener('click', async () => {
-        const useCustom = document.getElementById('use_custom_start_cb').checked;
-        const cmd = document.getElementById('custom_start_cmd_ta').value;
-        try {
-            const res = await apiCall(`/api/servers/${encodeURIComponent(serverName)}/config`, {
-                method: 'POST',
-                body: JSON.stringify({ use_custom_start: useCustom, custom_start_cmd: cmd })
-            });
-            showNotification(res.message || 'Impostazioni salvate', 'success');
-        } catch (e) {}
-    });
-}
-
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function formatDate(timestamp) {
-    return new Date(timestamp).toLocaleString();
-}
-
-// Funzioni API
-async function apiCall(url, options = {}) {
-    try {
-        const response = await fetch(url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            ...options
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.message || 'Errore nella richiesta');
-        }
-        
-        return data;
-    } catch (error) {
-        console.error('API Error:', error);
-        showNotification(error.message, 'error');
-        throw error;
-    }
-}
-
-// Gestione tab
-function initTabs() {
-    const tabs = document.querySelectorAll('.nav-tab');
-    const contents = document.querySelectorAll('.tab-content');
-    
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const targetId = tab.getAttribute('data-tab');
-            
-            // Rimuovi active da tutti
-            tabs.forEach(t => t.classList.remove('active'));
-            contents.forEach(c => c.classList.remove('active'));
-            
-            // Aggiungi active al tab e contenuto selezionati
-            tab.classList.add('active');
-            const targetContent = document.getElementById(targetId);
-            if (targetContent) {
-                targetContent.classList.add('active');
+    <div id="notification"></div>
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('otpModal');
+            if (modal) {
+                const closeBtn = document.getElementById('otpCloseBtn');
+                const okBtn = document.getElementById('otpOkBtn');
+                
+                function closeModal() { 
+                    modal.style.display = 'none'; 
+                }
+                
+                closeBtn && closeBtn.addEventListener('click', closeModal);
+                okBtn && okBtn.addEventListener('click', closeModal);
+                
+                window.addEventListener('click', function(e) {
+                    if (e.target === modal) closeModal();
+                });
             }
         });
-    });
-}
-
-// Inizializzazione comune
-document.addEventListener('DOMContentLoaded', function() {
-    initTabs();
-    initThemeSwitcher();
-    
-    // Aggiungi notifiche se non esistono
-    if (!document.getElementById('notification')) {
-        const notification = document.createElement('div');
-        notification.id = 'notification';
-        document.body.appendChild(notification);
-    }
-
-    // Inietta pannello solo nella pagina dettaglio server
-    try {
-        const m = window.location.pathname.match(/^\/servers\/([^\/]+)\/?$/);
-        if (m && m[1]) {
-            const serverName = decodeURIComponent(m[1]);
-            initCustomStartPanel(serverName);
-        }
-    } catch (e) {
-        console.warn('Init custom start panel error:', e);
-    }
-});
-
-// Gestione tema
-function initThemeSwitcher() {
-    const themeToggle = document.getElementById('theme-toggle');
-    if (!themeToggle) return;
-
-    const currentTheme = localStorage.getItem('theme') || 'light';
-    document.body.classList.toggle('dark-mode', currentTheme === 'dark');
-    themeToggle.checked = currentTheme === 'dark';
-
-    themeToggle.addEventListener('change', function() {
-        const isDarkMode = this.checked;
-        document.body.classList.toggle('dark-mode', isDarkMode);
-        localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    });
-}
+    </script>
+</body>
+</html>
