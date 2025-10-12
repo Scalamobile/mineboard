@@ -165,9 +165,13 @@
                     <i class="fas fa-folder-open"></i>
                     <h2>File Manager</h2>
                     <div style="margin-left: auto;">
-                        <input type="file" id="fileUpload" style="display: none;" onchange="uploadFile()">
+                        <input type="file" id="fileUpload" style="display: none;" onchange="uploadFile(this)" multiple>
+                        <input type="file" id="folderUpload" style="display: none;" onchange="uploadFile(this)" multiple webkitdirectory>
                         <button class="btn btn-success" onclick="document.getElementById('fileUpload').click()">
-                            <i class="fas fa-upload"></i> Carica File
+                            <i class="fas fa-file-upload"></i> Carica File
+                        </button>
+                        <button class="btn btn-success" onclick="document.getElementById('folderUpload').click()">
+                            <i class="fas fa-folder-upload"></i> Carica Cartelle
                         </button>
                         <button class="btn btn-primary" onclick="showJarDownloader()">
                             <i class="fas fa-download"></i> Scarica JAR
@@ -1327,35 +1331,40 @@
             showNotification('File aggiornati', 'success');
         }
 
-        async function uploadFile() {
-            const fileInput = document.getElementById('fileUpload');
-            const file = fileInput.files[0];
-            
-            if (!file) return;
+        async function uploadFile(fileInput) {
+            const files = fileInput.files;
 
-            const formData = new FormData();
-            formData.append('file', file);
-            if (currentPath) {
-                formData.append('path', currentPath);
+            if (files.length === 0) {
+                showNotification('Nessun file selezionato', 'error');
+                return;
             }
 
+            const formData = new FormData();
+            for (const file of files) {
+                // Use webkitRelativePath for directory structure, fallback to name
+                formData.append('files[]', file, file.webkitRelativePath || file.name);
+            }
+            formData.append('path', currentPath);
+
             try {
-                const response = await fetch(`/api/files/${serverName}/upload`, {
+                const res = await fetch(`/api/files/${serverName}/upload`, {
                     method: 'POST',
                     body: formData
                 });
-                
-                const result = await response.json();
-                showNotification(result.message, result.success ? 'success' : 'error');
-                
-                if (result.success) {
-                    loadFiles(currentPath, false);
+                const data = await res.json();
+
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    refreshFiles();
+                } else {
+                    showNotification(data.message, 'error');
                 }
             } catch (error) {
-                showNotification('Errore nel caricamento del file', 'error');
+                showNotification('Errore nel caricamento dei file', 'error');
+            } finally {
+                // Reset file input to allow re-uploading the same files
+                fileInput.value = '';
             }
-
-            fileInput.value = '';
         }
 
         // File Operations

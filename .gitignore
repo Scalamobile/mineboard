@@ -1,6 +1,7 @@
 .backups
 
 logs
-mineboard
+/mineboard
 .env
 users.json
+/server
