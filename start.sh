@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # MineBoard - Startup Script
 # Minecraft Server Dashboard

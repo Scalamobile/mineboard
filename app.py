@@ -46,7 +46,7 @@ ALLOWED_EXTENSIONS = {'jar', 'zip', 'txt', 'properties', 'yml', 'yaml', 'json'}
 USERS_FILE = os.path.join(os.getcwd(), 'users.json')
 
 # Versioning SE MODIFICHI QUESTA SEZIONE NIENTE PIÙ BISCOTTI :<
-APP_VERSION = os.environ.get('MINEBOARD_VERSION', '1.0.8')
+APP_VERSION = os.environ.get('MINEBOARD_VERSION', '1.0.9')
 UPDATE_CHECK_URL = os.environ.get('MINEBOARD_UPDATE_URL', 'https://pastebin.com/raw/whfbJD7K')
 UPDATE_PAGE_URL = os.environ.get('MINEBOARD_UPDATE_PAGE', 'https://github.com/Scalamobile/mineboard')
 
@@ -2234,27 +2234,42 @@ def upload_blob(server_name):
 
 @app.route('/api/files/<server_name>/upload', methods=['POST'])
 def upload_file(server_name):
-    """Carica un file via multipart/form-data nella cartella del server (con percorso opzionale)."""
+    """Carica uno o più file/cartelle via multipart/form-data."""
     if not has_permission('files_access'):
         return jsonify({'success': False, 'message': 'Permesso negato'}), 403
     try:
-        if 'file' not in request.files:
-            return jsonify({'success': False, 'message': 'Nessun file nella richiesta'}), 400
-        file = request.files['file']
-        if not file or file.filename.strip() == '':
-            return jsonify({'success': False, 'message': 'Nome file mancante'}), 400
-        # Percorso relativo opzionale all'interno del server
-        rel_path = (request.form.get('path') or '').strip()
+        files = request.files.getlist('files[]')
+        if not files or (len(files) == 1 and not files[0].filename):
+            return jsonify({'success': False, 'message': 'Nessun file selezionato'}), 400
+
+        base_path = (request.form.get('path') or '').strip()
         server_path = os.path.join(SERVER_DIR, server_name)
         if not os.path.isdir(server_path):
             return jsonify({'success': False, 'message': 'Server non trovato'}), 404
-        # Costruisci destinazione sicura
-        safe_filename = secure_filename(file.filename)
-        dest_dir = os.path.join(server_path, rel_path) if rel_path else server_path
-        os.makedirs(dest_dir, exist_ok=True)
-        dest_path = os.path.join(dest_dir, safe_filename)
-        file.save(dest_path)
-        return jsonify({'success': True, 'message': f"File caricato: {os.path.relpath(dest_path, server_path)}"})
+
+        uploaded_count = 0
+        for file in files:
+            if not file or not file.filename:
+                continue
+
+            # The filename from the browser can include the relative path
+            # We need to secure each component of the path
+            relative_path_parts = file.filename.split('/')
+            safe_parts = [secure_filename(part) for part in relative_path_parts]
+            safe_relative_path = os.path.join(*safe_parts)
+
+            # Combine with the current path in the file manager
+            full_dest_path = os.path.join(server_path, base_path, safe_relative_path)
+
+            # Create destination directory if it doesn't exist
+            dest_dir = os.path.dirname(full_dest_path)
+            os.makedirs(dest_dir, exist_ok=True)
+
+            file.save(full_dest_path)
+            uploaded_count += 1
+
+        return jsonify({'success': True, 'message': f'{uploaded_count} file(s) caricati con successo'})
+
     except Exception as e:
         return jsonify({'success': False, 'message': f'Errore: {str(e)}'}), 500
 
