@@ -2359,7 +2359,7 @@
                 setProgress(0, 'Upload al server...');
                 await new Promise((resolve, reject) => {
                     const formData = new FormData();
-                    formData.append('file', blob, filename);
+                    formData.append('files[]', blob, filename);
                     const xhr = new XMLHttpRequest();
                     xhr.open('POST', `/api/files/${serverName}/upload`);
                     xhr.upload.onprogress = (e) => {
