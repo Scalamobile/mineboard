@@ -260,7 +260,7 @@ body {
 }
 
 .console-output {
-    color: #33FF33; /* Classic green terminal text */
+    color: #C9D1D9; /* Gray text for readability on dark bg */
 }
 
 /* 8. File Manager */

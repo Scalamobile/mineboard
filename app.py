@@ -22,9 +22,38 @@ from flask import Flask, render_template, request, jsonify, send_file, redirect,
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import logging
+import re
+import html
 
 app = Flask(__name__)
 app.secret_key = 'mineboard_secret_key_2024'
+
+# ===================== LOG CLEANING UTILITY =====================
+def clean_and_colorize_log(log_line):
+    """
+    Rimuove codici ANSI dai log e restituisce HTML safe con colorazione:
+    - Rosso per errori (ERROR, SEVERE, FATAL, EXCEPTION)
+    - Giallo per avvisi (WARN, WARNING)
+    - Normale per tutto il resto
+    """
+    # Rimuovi tutti i codici ANSI escape (supporta anche sequenze senza ESC viste nei log)
+    ansi_escape_pattern = re.compile(
+        r'\x1b\[[0-9;]*[A-Za-z]|'      # ESC[...letter
+        r'\033\[[0-9;]*[A-Za-z]|'      # Ottale
+        r'\[([0-9]{1,3}(;[0-9]{1,3})*)?m'  # Sequenze senza ESC tipo [93m, [0m, [38;5;10m
+    )
+    no_ansi = ansi_escape_pattern.sub('', log_line)
+
+    # Escape HTML per sicurezza
+    safe = html.escape(no_ansi.rstrip('\n'))
+
+    # Classificazione semplice per colore
+    low = safe.lower()
+    if any(k in low for k in [' error', 'error:', '[error', 'severe', 'fatal', 'exception']):
+        return f'<span style="color:#e74c3c;">{safe}</span>'
+    if any(k in low for k in [' warn', 'warning', '[warn']):
+        return f'<span style="color:#f1c40f;">{safe}</span>'
+    return safe
 
 # Riduci i log del server di sviluppo/werkzeug (niente access log in console)
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
@@ -46,7 +75,7 @@ ALLOWED_EXTENSIONS = {'jar', 'zip', 'txt', 'properties', 'yml', 'yaml', 'json'}
 USERS_FILE = os.path.join(os.getcwd(), 'users.json')
 
 # Versioning SE MODIFICHI QUESTA SEZIONE NIENTE PIÙ BISCOTTI :<
-APP_VERSION = os.environ.get('MINEBOARD_VERSION', '1.1.0')
+APP_VERSION = os.environ.get('MINEBOARD_VERSION', '1.1.1')
 UPDATE_CHECK_URL = os.environ.get('MINEBOARD_UPDATE_URL', 'https://pastebin.com/raw/whfbJD7K')
 UPDATE_PAGE_URL = os.environ.get('MINEBOARD_UPDATE_PAGE', 'https://github.com/Scalamobile/mineboard')
 
@@ -977,15 +1006,17 @@ class MinecraftServer:
         except Exception as e:
             return False, f"Errore nell'invio comando: {str(e)}"
     
-    def get_logs(self, lines=100):
+    def get_logs(self, lines=None):
         try:
             if os.path.exists(self.log_file):
                 with open(self.log_file, 'r', encoding='utf-8', errors='ignore') as f:
                     all_lines = f.readlines()
-                    logs = all_lines[-lines:] if len(all_lines) > lines else all_lines
+                    logs = all_lines if lines is None else (all_lines[-lines:] if len(all_lines) > lines else all_lines)
                     # Aggiorna giocatori online quando leggiamo i log
                     self.update_online_players(logs)
-                    return logs
+                    # Pulisci e colora i log prima di restituirli
+                    cleaned_logs = [clean_and_colorize_log(log) for log in logs]
+                    return cleaned_logs
             return []
         except Exception as e:
             return [f"Errore nella lettura log: {str(e)}"]
@@ -2328,17 +2359,21 @@ def get_logs(server_name):
     """Ritorna gli ultimi log del server se disponibile."""
     if server_name in running_servers:
         server = running_servers[server_name]
-        logs = server.get_logs()
+        logs = server.get_logs(lines=None)  # restituisci tutto
         return jsonify({'success': True, 'logs': logs})
     # Se non in esecuzione, prova a leggere file di log su disco
-    log_file = os.path.join(LOG_DIR, f'{server_name}.log')
-    if os.path.exists(log_file):
-        try:
-            with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
-                lines = f.readlines()
-            return jsonify({'success': True, 'logs': lines[-200:]})
-        except Exception:
-            pass
+    # Preferisci Minecraft latest.log se presente
+    mc_latest = os.path.join(SERVER_DIR, server_name, 'logs', 'latest.log')
+    candidates = [mc_latest, os.path.join(LOG_DIR, f'{server_name}.log')]
+    for log_file in candidates:
+        if os.path.exists(log_file):
+            try:
+                with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    lines = f.readlines()
+                cleaned_lines = [clean_and_colorize_log(line) for line in lines]
+                return jsonify({'success': True, 'logs': cleaned_lines})
+            except Exception:
+                continue
     return jsonify({'success': False, 'message': 'Server non in esecuzione'}), 404
 
 @app.route('/api/servers/<server_name>/players')

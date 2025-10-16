@@ -656,6 +656,8 @@
         let serverInfo = null;
         let consoleInterval = null;
         let logsInterval = null;
+        let lastLogCount = 0;        // numero di righe già renderizzate in console
+        let clearedConsole = false;  // se true, ignora i log fino alla lunghezza attuale
         
         // Statistics variables
         let statsInterval = null;
@@ -921,7 +923,7 @@
                     clearConsole();
                     const consoleOutput = document.getElementById('consoleOutput');
                     const timestamp = new Date().toLocaleTimeString();
-                    consoleOutput.innerHTML = `<div style="color: #00ff00;">[${timestamp}] Server ${serverName} in avvio...</div>`;
+                    consoleOutput.innerHTML = `<div style="color: #888;">[${timestamp}] Server ${serverName} in avvio...</div>`;
                     
                     loadServerInfo();
                     switchToTab('console');
@@ -1081,12 +1083,25 @@
                 const data = await apiCall(`/api/servers/${serverName}/logs`);
                 if (data.success && data.logs) {
                     const consoleOutput = document.getElementById('consoleOutput');
-                    const recentLogs = data.logs.slice(-20); // Ultimi 20 log
-                    
-                    consoleOutput.innerHTML = recentLogs.map(log => 
-                        `<div style="color: #00ff00;">${log.replace(/\n/g, '')}</div>`
-                    ).join('');
-                    
+                    const total = data.logs.length;
+
+                    // Se la console è stata appena pulita, sincronizza il puntatore e non mostrare vecchi log
+                    if (clearedConsole) {
+                        lastLogCount = total;
+                        clearedConsole = false;
+                        return;
+                    }
+
+                    // Prima volta: renderizza tutto
+                    if (lastLogCount === 0) {
+                        consoleOutput.innerHTML = data.logs.map(l => `<div>${l.replace(/\n/g, '')}</div>`).join('');
+                    } else if (total > lastLogCount) {
+                        const newLines = data.logs.slice(lastLogCount);
+                        const fragment = newLines.map(l => `<div>${l.replace(/\n/g, '')}</div>`).join('');
+                        consoleOutput.insertAdjacentHTML('beforeend', fragment);
+                    }
+
+                    lastLogCount = total;
                     consoleOutput.scrollTop = consoleOutput.scrollHeight;
                 }
             } catch (error) {
@@ -1107,7 +1122,7 @@
                 if (data.success) {
                     const consoleOutput = document.getElementById('consoleOutput');
                     const timestamp = new Date().toLocaleTimeString();
-                    consoleOutput.innerHTML += `<div style="color: #00ff00;">[${timestamp}] > ${command}</div>`;
+                    consoleOutput.innerHTML += `<div style="color: #888;">[${timestamp}] > ${command}</div>`;
                     consoleOutput.scrollTop = consoleOutput.scrollHeight;
                 } else {
                     showNotification(data.message, 'error');
@@ -1132,7 +1147,10 @@
 
         function clearConsole() {
             const timestamp = new Date().toLocaleTimeString();
-            document.getElementById('consoleOutput').innerHTML = `<div style="color: #888;">[${timestamp}] Console pulita - Server fermato</div>`;
+            const el = document.getElementById('consoleOutput');
+            el.innerHTML = `<div style="color: #888;">[${timestamp}] Console pulita</div>`;
+            // evita che i vecchi log ricompaiano al prossimo polling
+            clearedConsole = true;
         }
 
         // Logs
