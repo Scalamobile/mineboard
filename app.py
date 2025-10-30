@@ -75,7 +75,7 @@ ALLOWED_EXTENSIONS = {'jar', 'zip', 'txt', 'properties', 'yml', 'yaml', 'json'}
 USERS_FILE = os.path.join(os.getcwd(), 'users.json')
 
 # Versioning SE MODIFICHI QUESTA SEZIONE NIENTE PIÙ BISCOTTI :<
-APP_VERSION = os.environ.get('MINEBOARD_VERSION', '1.1.1')
+APP_VERSION = os.environ.get('MINEBOARD_VERSION', '1.1.2')
 UPDATE_CHECK_URL = os.environ.get('MINEBOARD_UPDATE_URL', 'https://pastebin.com/raw/whfbJD7K')
 UPDATE_PAGE_URL = os.environ.get('MINEBOARD_UPDATE_PAGE', 'https://github.com/Scalamobile/mineboard')
 
@@ -1304,11 +1304,16 @@ def download_plugin(server_name):
         if not resource_id:
             return jsonify({'success': False, 'message': 'resource_id mancante'}), 400
 
+        # Ottieni informazioni sul plugin per il nome reale
+        plugin_info = spiget_get(f"/resources/{resource_id}")
+        plugin_data = plugin_info.json()
+        plugin_name = plugin_data.get('name', f'plugin-{resource_id}')
+        
         # Scarica il file (proxy) – usa endpoint download che redirige al jar
         r = spiget_get(f"/resources/{resource_id}/download", stream=True)
 
-        # Determina filename da Content-Disposition
-        filename = f"plugin-{resource_id}.jar"
+        # Determina filename da Content-Disposition, altrimenti usa il nome del plugin
+        filename = f"{plugin_name}.jar"
         cd = r.headers.get('Content-Disposition') or r.headers.get('content-disposition')
         if cd and 'filename=' in cd:
             filename = cd.split('filename=')[-1].strip('"')
